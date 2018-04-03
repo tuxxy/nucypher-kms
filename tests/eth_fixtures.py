@@ -23,7 +23,7 @@ def mock_token_deployer(testerchain):
 
 @pytest.fixture(scope='function')
 def mock_miner_escrow_deployer(token_agent):
-    escrow = MockMinerEscrowDeployer(token_agent)
+    escrow = utils.MockMinerEscrowDeployer(token_agent)
     escrow.arm()
     escrow.deploy()
     yield escrow
@@ -38,4 +38,4 @@ def token_agent(testerchain, mock_token_deployer):
 @pytest.fixture(scope='function')
 def mock_miner_agent(token_agent, mock_token_deployer, mock_miner_escrow_deployer):
     miner_agent = MinerAgent(token_agent)
-    yield minder_agent
+    yield miner_agent
