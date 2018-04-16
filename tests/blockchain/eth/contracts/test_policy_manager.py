@@ -127,8 +127,8 @@ def test_create_revoke(web3, chain, escrow, policy_manager):
     event_args = events[0]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    # assert node.lower() == event_args['nodes'][0].lower()
+    assert client == event_args['client']
+    # assert node == event_args['nodes'][0]
 
     # Try to create policy again
     with pytest.raises(TransactionFailed):
@@ -149,15 +149,15 @@ def test_create_revoke(web3, chain, escrow, policy_manager):
     event_args = events[0]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
+    assert client == event_args['client']
     assert value == event_args['value']
     events = policy_manager.pastEvents('ArrangementRevoked').get()
     assert 1 == len(events)
     event_args = events[0]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    assert node1.lower() == event_args['node'].lower()
+    assert client == event_args['client']
+    assert node1 == event_args['node']
     assert value == event_args['value']
 
     # Can't revoke again
@@ -190,8 +190,8 @@ def test_create_revoke(web3, chain, escrow, policy_manager):
     event_args = events[1]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_2 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    # assert node.lower() == event_args['node'].lower()
+    assert client == event_args['client']
+    # assert node == event_args['node']
 
     # Can't revoke nonexistent arrangement
     with pytest.raises(TransactionFailed):
@@ -211,8 +211,8 @@ def test_create_revoke(web3, chain, escrow, policy_manager):
     event_args = events[1]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_2 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    assert node1.lower() == event_args['node'].lower()
+    assert client == event_args['client']
+    assert node1 == event_args['node']
     assert value == event_args['value']
 
     # Can't revoke again
@@ -232,21 +232,21 @@ def test_create_revoke(web3, chain, escrow, policy_manager):
     event_args = events[2]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_2 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    assert node2.lower() == event_args['node'].lower()
+    assert client == event_args['client']
+    assert node2 == event_args['node']
     assert value == event_args['value']
     event_args = events[3]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_2 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    assert node3.lower() == event_args['node'].lower()
+    assert client == event_args['client']
+    assert node3 == event_args['node']
     assert value == event_args['value']
     events = policy_manager.pastEvents('PolicyRevoked').get()
     assert 2 == len(events)
     event_args = events[1]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_2 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
+    assert client == event_args['client']
     assert 2 * value == event_args['value']
 
     # Can't revoke again
@@ -306,7 +306,7 @@ def test_reward(web3, chain, escrow, policy_manager):
     events = policy_manager.pastEvents('Withdrawn').get()
     assert 1 == len(events)
     event_args = events[0]['args']
-    assert node1.lower() == event_args['node'].lower()
+    assert node1 == event_args['node']
     assert 80 == event_args['value']
 
     # Mint more periods
@@ -325,7 +325,7 @@ def test_reward(web3, chain, escrow, policy_manager):
     events = policy_manager.pastEvents('Withdrawn').get()
     assert 2 == len(events)
     event_args = events[1]['args']
-    assert node1.lower() == event_args['node'].lower()
+    assert node1 == event_args['node']
     assert 120 == event_args['value']
 
 
@@ -357,15 +357,15 @@ def test_refund(web3, chain, escrow, policy_manager):
     event_args = events[0]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    assert node1.lower() == event_args['node'].lower()
+    assert client == event_args['client']
+    assert node1 == event_args['node']
     assert 180 == event_args['value']
     events = policy_manager.pastEvents('RefundForPolicy').get()
     assert 1 == len(events)
     event_args = events[0]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
+    assert client == event_args['client']
     assert 180 == event_args['value']
 
     wait_time(chain, 1)
@@ -381,15 +381,15 @@ def test_refund(web3, chain, escrow, policy_manager):
     event_args = events[1]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    assert node1.lower() == event_args['node'].lower()
+    assert client == event_args['client']
+    assert node1 == event_args['node']
     assert 20 == event_args['value']
     events = policy_manager.pastEvents('RefundForPolicy').get()
     assert 2 == len(events)
     event_args = events[1]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
+    assert client == event_args['client']
     assert 20 == event_args['value']
 
     # Can't refund again
@@ -418,33 +418,33 @@ def test_refund(web3, chain, escrow, policy_manager):
     event_args = events[2]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_2 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    assert node1.lower() == event_args['node'].lower()
+    assert client == event_args['client']
+    assert node1 == event_args['node']
     assert 0 == event_args['value']
     event_args = events[3]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_2 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    assert node2.lower() == event_args['node'].lower()
+    assert client == event_args['client']
+    assert node2 == event_args['node']
     assert 0 == event_args['value']
     event_args = events[4]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_2 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    assert node3.lower() == event_args['node'].lower()
+    assert client == event_args['client']
+    assert node3 == event_args['node']
     assert 0 == event_args['value']
     event_args = events[5]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_2 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    assert node1.lower() == event_args['node'].lower()
+    assert client == event_args['client']
+    assert node1 == event_args['node']
     assert 0 == event_args['value']
     events = policy_manager.pastEvents('RefundForPolicy').get()
     assert 3 == len(events)
     event_args = events[2]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_2 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
+    assert client == event_args['client']
     assert 0 == event_args['value']
 
     # Try to refund nonexistent policy
@@ -486,8 +486,8 @@ def test_refund(web3, chain, escrow, policy_manager):
     event_args = events[6]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_2 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    assert node1.lower() == event_args['node'].lower()
+    assert client == event_args['client']
+    assert node1 == event_args['node']
     assert 120 == event_args['value']
     events = policy_manager.pastEvents('RefundForPolicy').get()
     assert 3 == len(events)
@@ -510,21 +510,21 @@ def test_refund(web3, chain, escrow, policy_manager):
     event_args = events[7]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_2 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    assert node2.lower() == event_args['node'].lower()
+    assert client == event_args['client']
+    assert node2 == event_args['node']
     assert 120 == event_args['value']
     event_args = events[8]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_2 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    assert node3.lower() == event_args['node'].lower()
+    assert client == event_args['client']
+    assert node3 == event_args['node']
     assert 120 == event_args['value']
     events = policy_manager.pastEvents('RefundForPolicy').get()
     assert 4 == len(events)
     event_args = events[3]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_2 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
+    assert client == event_args['client']
     assert 2 * 120 == event_args['value']
 
     # Create policy again
@@ -563,15 +563,15 @@ def test_refund(web3, chain, escrow, policy_manager):
     event_args = events[0]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_3 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
-    assert node1.lower() == event_args['node'].lower()
+    assert client == event_args['client']
+    assert node1 == event_args['node']
     assert 140 == event_args['value']
     events = policy_manager.pastEvents('PolicyRevoked').get()
     assert 1 == len(events)
     event_args = events[0]['args']
     # TODO change when v4 of web3.py is released
     assert policy_id_3 == event_args['policyId'].encode('latin-1')
-    assert client.lower() == event_args['client'].lower()
+    assert client == event_args['client']
     assert 140 == event_args['value']
 
     # Minting is useless after revoke
@@ -587,8 +587,8 @@ def test_refund(web3, chain, escrow, policy_manager):
 
 def test_verifying_state(web3, chain):
     creator = web3.eth.accounts[0]
-    address1 = web3.eth.accounts[1].lower()
-    address2 = web3.eth.accounts[2].lower()
+    address1 = web3.eth.accounts[1]
+    address2 = web3.eth.accounts[2]
 
     # Deploy contract
     contract_library_v1, _ = chain.provider.get_or_deploy_contract('PolicyManager', address1)
@@ -602,11 +602,11 @@ def test_verifying_state(web3, chain):
         ContractFactoryClass=Contract)
 
     # Upgrade to the second version
-    assert address1 == contract.call().escrow().lower()
+    assert address1 == contract.call().escrow()
     tx = dispatcher.transact({'from': creator}).upgrade(contract_library_v2.address)
     chain.wait.for_receipt(tx)
-    assert contract_library_v2.address.lower() == dispatcher.call().target().lower()
-    assert address2 == contract.call().escrow().lower()
+    assert contract_library_v2.address == dispatcher.call().target()
+    assert address2 == contract.call().escrow()
     tx = contract.transact({'from': creator}).setValueToCheck(3)
     chain.wait.for_receipt(tx)
     assert 3 == contract.call().valueToCheck()
@@ -623,8 +623,8 @@ def test_verifying_state(web3, chain):
     # But can rollback
     tx = dispatcher.transact({'from': creator}).rollback()
     chain.wait.for_receipt(tx)
-    assert contract_library_v1.address.lower() == dispatcher.call().target().lower()
-    assert address1 == contract.call().escrow().lower()
+    assert contract_library_v1.address == dispatcher.call().target()
+    assert address1 == contract.call().escrow()
     with pytest.raises(TransactionFailed):
         tx = contract.transact({'from': creator}).setValueToCheck(2)
         chain.wait.for_receipt(tx)
