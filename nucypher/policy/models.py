@@ -1,5 +1,6 @@
 import asyncio
 import binascii
+import os
 import uuid
 from collections import OrderedDict
 from datetime import datetime
@@ -271,6 +272,7 @@ class Policy(object):
 class TreasureMap(object):
     def __init__(self, m, ursula_interface_ids=None):
         self.m = m
+        self.nonce = os.urandom(16)
         self.ids = set(ursula_interface_ids or set())
 
     def packed_payload(self):
