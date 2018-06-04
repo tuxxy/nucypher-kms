@@ -394,6 +394,14 @@ class Alice(Character, PolicyAuthor):
 
         return policy  # Now with TreasureMap affixed!
 
+    def revoke(self):
+        """
+        Revokes a policy from the NuCypher network. A policy revocation is
+        successful when the number of KFrags available on the network drops
+        below the theshold amount.
+        """
+        pass
+
 
 class Bob(Character):
     _server_class = NucypherSeedOnlyDHTServer
