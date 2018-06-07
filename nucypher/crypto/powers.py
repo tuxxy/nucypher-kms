@@ -1,8 +1,8 @@
 import inspect
 from typing import List, Union
 
-from nucypher.keystore import keypairs
-from nucypher.keystore.keypairs import SigningKeypair, EncryptingKeypair
+from nucypher.datastore import keypairs
+from nucypher.datastore.keypairs import SigningKeypair, EncryptingKeypair
 from umbral.keys import UmbralPublicKey, UmbralPrivateKey, UmbralKeyingMaterial
 from umbral import pre
 

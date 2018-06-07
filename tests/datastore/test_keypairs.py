@@ -1,6 +1,6 @@
 import pytest
 import sha3
-from nucypher.keystore import keypairs
+from nucypher.datastore import keypairs
 from umbral.keys import UmbralPrivateKey, UmbralPublicKey
 
 

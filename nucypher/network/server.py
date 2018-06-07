@@ -15,7 +15,7 @@ from umbral.fragments import KFrag
 
 from nucypher.crypto.kits import UmbralMessageKit
 from nucypher.crypto.powers import EncryptingPower, SigningPower
-from nucypher.keystore.threading import ThreadedSession
+from nucypher.datastore.threading import ThreadedSession
 from nucypher.network.capabilities import SeedOnly, ServerCapability
 from nucypher.network.node import NucypherDHTNode
 from nucypher.network.protocols import NucypherSeedOnlyProtocol, NucypherHashProtocol, \
@@ -137,13 +137,13 @@ class ProxyRESTServer(object):
         if not db_name:
             raise TypeError("In order to start a datastore, you need to supply a db_name.")
 
-        from nucypher.keystore import keystore
-        from nucypher.keystore.db import Base
+        from nucypher.datastore import datastore
+        from nucypher.datastore.db import Base
         from sqlalchemy.engine import create_engine
 
         engine = create_engine('sqlite:///{}'.format(db_name))
         Base.metadata.create_all(engine)
-        self.datastore = keystore.KeyStore(engine)
+        self.datastore = datastore.DataStore(engine)
         self.db_engine = engine
 
     def rest_url(self):

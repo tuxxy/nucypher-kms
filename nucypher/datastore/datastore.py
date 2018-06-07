@@ -2,7 +2,7 @@ from typing import Union
 
 from nucypher.crypto.signing import Signature
 from bytestring_splitter import BytestringSplitter
-from nucypher.keystore.db.models import Key, PolicyArrangement, Workorder
+from nucypher.datastore.db.models import Key, PolicyArrangement, Workorder
 from umbral.fragments import KFrag
 from umbral.keys import UmbralPublicKey
 from . import keypairs
@@ -12,12 +12,12 @@ from sqlalchemy.orm import sessionmaker
 
 class NotFound(Exception):
     """
-    Exception class for KeyStore calls for objects that don't exist.
+    Exception class for DataStore calls for objects that don't exist.
     """
     pass
 
 
-class KeyStore(object):
+class DataStore(object):
     """
     A storage class of cryptographic keys.
     """
@@ -25,7 +25,7 @@ class KeyStore(object):
 
     def __init__(self, sqlalchemy_engine=None):
         """
-        Initalizes a KeyStore object.
+        Initalizes a DataStore object.
 
         :param sqlalchemy_engine: SQLAlchemy engine object to create session
         """
@@ -38,7 +38,7 @@ class KeyStore(object):
 
     def add_key(self, key, is_signing=True, session=None) -> Key:
         """
-        :param key: Keypair object to store in the keystore.
+        :param key: Keypair object to store in the datastore.
 
         :return: The newly added key object.
         """
@@ -55,7 +55,7 @@ class KeyStore(object):
     def get_key(self, fingerprint: bytes, session=None) -> Union[keypairs.EncryptingKeypair,
                                                    keypairs.SigningKeypair]:
         """
-        Returns a key from the KeyStore.
+        Returns a key from the DataStore.
 
         :param fingerprint: Fingerprint, in bytes, of key to return
 
@@ -74,7 +74,7 @@ class KeyStore(object):
 
     def del_key(self, fingerprint: bytes, session=None):
         """
-        Deletes a key from the KeyStore.
+        Deletes a key from the DataStore.
 
         :param fingerprint: Fingerprint of key to delete
         """
@@ -148,7 +148,7 @@ class KeyStore(object):
 
     def add_workorder(self, bob_pubkey_sig, bob_signature, hrac, session=None) -> Workorder:
         """
-        Adds a Workorder to the keystore.
+        Adds a Workorder to the datastore.
         """
         session = session or self._session_on_init_thread
         bob_pubkey_sig = self.add_key(bob_pubkey_sig)

@@ -3,7 +3,7 @@ import sha3
 from datetime import datetime
 
 from nucypher.crypto.utils import fingerprint_from_key
-from nucypher.keystore.db import Base
+from nucypher.datastore.db import Base
 from sqlalchemy.orm import relationship
 
 from sqlalchemy import (

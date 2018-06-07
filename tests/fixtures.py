@@ -11,11 +11,15 @@ from nucypher.blockchain.eth.chains import Blockchain
 from nucypher.characters import Alice, Bob
 
 from nucypher.config.configs import NucypherConfig
+from nucypher.crypto.signing import SignatureStamp
+
+from nucypher.datastore import datastore
+from nucypher.datastore.db import Base
 
 from nucypher.data_sources import DataSource
-from nucypher.keystore import keystore
-from nucypher.keystore.db import Base
-from nucypher.keystore.keypairs import SigningKeypair
+from nucypher.datastore import datastore
+from nucypher.datastore.db import Base
+from nucypher.datastore.keypairs import SigningKeypair
 from nucypher.network import blockchain_client
 from tests.utilities import NUMBER_OF_URSULAS_IN_NETWORK, MockNetworkyStuff, make_ursulas, \
     URSULA_PORT, EVENT_LOOP
@@ -97,11 +101,11 @@ def treasure_map_is_set_on_dht(enacted_policy, ursulas):
 
 
 @pytest.fixture(scope="module")
-def test_keystore():
+def test_datastore():
     engine = create_engine('sqlite:///:memory:')
     Base.metadata.create_all(engine)
-    test_keystore = keystore.KeyStore(engine)
-    yield test_keystore
+    test_datastore = datastore.DataStore(engine)
+    yield test_datastore
 
 
 @pytest.fixture(scope="module")
