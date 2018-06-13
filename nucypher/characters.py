@@ -596,6 +596,11 @@ class Bob(Character):
             node = self.known_nodes[UmbralPublicKey.from_bytes(node_id)]
             cfrags = self.get_reencrypted_c_frags(work_orders[bytes(node.stamp)])
             message_kit.capsule.attach_cfrag(cfrags[0])
+
+        message_kit.capsule.set_correctness_keys(
+                delegating_key=message_kit.policy_pubkey,
+                receiving=self.public_key(EncryptingPower),
+                verifying=alice_pubkey_sig)
         verified, delivered_cleartext = self.verify_from(data_source, message_kit, decrypt=True)
 
         if verified:

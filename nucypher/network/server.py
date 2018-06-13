@@ -22,6 +22,8 @@ from nucypher.network.protocols import NucypherSeedOnlyProtocol, NucypherHashPro
     dht_value_splitter, dht_with_hrac_splitter
 from nucypher.network.storage import SeedOnlyStorage
 
+from nucypher.config import UMBRAL_PARAMS
+
 
 class NucypherDHTServer(Server):
     protocol_class = NucypherHashProtocol
