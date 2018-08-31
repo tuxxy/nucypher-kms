@@ -91,7 +91,7 @@ class VerifiableNode:
                                             port=self.rest_interface.port)
         if not response.status_code == 200:
             raise RuntimeError("Or something.")  # TODO: Raise an error here?  Or return False?  Or something?
-        signature, identity_evidence, verifying_key, encrypting_key, public_address, rest_info, dht_info = self._internal_splitter(response.content)
+        timetstamp, signature, identity_evidence, verifying_key, encrypting_key, public_address, rest_info, dht_info = self._internal_splitter(response.content)
 
         verifying_keys_match = verifying_key == self.public_material(SigningPower)
         encrypting_keys_match = encrypting_key == self.public_material(EncryptingPower)

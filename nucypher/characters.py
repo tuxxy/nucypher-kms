@@ -1016,7 +1016,8 @@ class Bob(Character):
 
 
 class Ursula(Character, VerifiableNode, ProxyRESTServer, Miner):
-    _internal_splitter = BytestringSplitter(Signature,
+    _internal_splitter = BytestringSplitter(int(4),
+                                            Signature,
                                             VariableLengthBytestring,
                                             (UmbralPublicKey, PUBLIC_KEY_LENGTH),
                                             (UmbralPublicKey, PUBLIC_KEY_LENGTH),
@@ -1062,6 +1063,8 @@ class Ursula(Character, VerifiableNode, ProxyRESTServer, Miner):
 
         if known_nodes is None:
             known_nodes = tuple()
+
+        self.timestamp = maya.now().epoch
 
         VerifiableNode.__init__(self, interface_signature=interface_signature)
 
@@ -1112,10 +1115,11 @@ class Ursula(Character, VerifiableNode, ProxyRESTServer, Miner):
 
         identity_evidence = VariableLengthBytestring(self._evidence_of_decentralized_identity)
 
-        as_bytes = bytes().join((bytes(self._interface_signature),
+        as_bytes = bytes().join((self.timestamp.to_bytes(4, 'big'),
+                                 bytes(self._interface_signature),
                                  bytes(identity_evidence),
-                                 bytes(self.public_material(SigningPower)),
-                                 bytes(self.public_material(EncryptingPower)),
+                                 bytes(self.public_key(SigningPower)),
+                                 bytes(self.public_key(EncryptingPower)),
                                  self.canonical_public_address,
                                  interface_info)
                                 )
@@ -1182,7 +1186,7 @@ class Ursula(Character, VerifiableNode, ProxyRESTServer, Miner):
         stranger_ursulas = []
 
         ursulas_attrs = cls._internal_splitter.repeat(ursulas_as_bytes)
-        for (signature, identity_evidence, verifying_key, encrypting_key, public_address, rest_info,
+        for (timestamp, signature, identity_evidence, verifying_key, encrypting_key, public_address, rest_info,
              dht_info) in ursulas_attrs:
             stranger_ursula_from_public_keys = cls.from_public_keys(
                 {SigningPower: verifying_key, EncryptingPower: encrypting_key},
@@ -1303,7 +1307,6 @@ class Ursula(Character, VerifiableNode, ProxyRESTServer, Miner):
 
         try:
             while True:
-
                 # calculate timedeltas
                 now = maya.now()
                 initialization_delta = now - start_time
@@ -1326,9 +1329,24 @@ class Ursula(Character, VerifiableNode, ProxyRESTServer, Miner):
                 # wait before resampling
                 time.sleep(sample_rate)
                 continue
-
         finally:
 
             # TODO: Cleanup #
 
             pass
+
+    @classmethod
+    def from_bytes(cls, ursula_as_bytes, federated_only=False):
+        timestamp, signature, identity_evidence, verifying_key, encrypting_key, public_address, rest_info, dht_info = cls._internal_splitter(
+            ursula_as_bytes)
+        stranger_ursula_from_public_keys = cls.from_public_keys(
+            {SigningPower: verifying_key, EncryptingPower: encrypting_key},
+            interface_signature=signature,
+            checksum_address=to_checksum_address(public_address),
+            rest_host=rest_info.host,
+            rest_port=rest_info.port,
+            dht_host=dht_info.host,
+            dht_port=dht_info.port,
+            federated_only=federated_only  # TODO: 289
+        )
+        return stranger_ursula_from_public_keys
