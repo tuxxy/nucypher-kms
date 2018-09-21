@@ -282,12 +282,12 @@ class NucypherKeyring:
 
         return plain_umbral_key
 
-    def unlock(self, passphrase: bytes) -> None:
+    def unlock(self, salt: bytes, passphrase: str) -> None:
         if self.__derived_key_material is not None:
             raise Exception('Keyring already unlocked')
 
         # TODO: missing salt parameter below
-        derived_key = _derive_key_material_from_passphrase(passphrase=passphrase)
+        derived_key = _derive_key_material_from_passphrase(salt=salt, passphrase=passphrase)
         self.__derived_key_material = derived_key
 
     def lock(self) -> None:
