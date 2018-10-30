@@ -199,4 +199,3 @@ def test_alices_powers_are_persistent(federated_ursulas, tmpdir):
 
     # Both policies must share the same public key (i.e., the policy public key)
     assert policy_pubkey == roberto_policy.public_key
-
