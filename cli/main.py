@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import random
+import sentry_sdk
 import sys
 
 import click
@@ -36,6 +37,8 @@ from nucypher.utilities.sandbox.constants import (DEVELOPMENT_TOKEN_AIRDROP_AMOU
                                                   DEVELOPMENT_ETH_AIRDROP_AMOUNT,
                                                   DEFAULT_SIMULATION_REGISTRY_FILEPATH)
 from nucypher.utilities.sandbox.ursula import UrsulaCommandProtocol
+
+#sentry_sdk.init(<KEY_HERE>)
 
 __version__ = '0.1.0-alpha.0'
 BANNER = """
