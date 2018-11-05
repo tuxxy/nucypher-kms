@@ -30,6 +30,7 @@ from umbral.keys import UmbralPublicKey
 from nucypher.crypto.api import keccak_digest
 from nucypher.crypto.kits import UmbralMessageKit
 from nucypher.crypto.powers import SigningPower, KeyPairBasedPower, PowerUpError
+from nucypher.crypto.signing import InvalidSignature
 from nucypher.keystore.keypairs import HostingKeypair
 from nucypher.keystore.keystore import NotFound
 from nucypher.keystore.threading import ThreadedSession
@@ -271,9 +272,12 @@ class ProxyRESTRoutes:
                     session=session)
                 alice_pubkey = UmbralPublicKey.from_bytes(
                     policy_arrangement.alice_pubkey_sig.key_data)
-                is_valid = revocation_notice.verify(alice_pubkey)
 
-                if is_valid:
+                try:
+                    revocation_notice.verify(alice_pubkey)
+                except InvalidSignature:
+                    return 404
+                else:
                     self.datastore.del_policy_arrangement(
                         revocation_notice.arrangement_id.hex().encode(),
                         session=session)

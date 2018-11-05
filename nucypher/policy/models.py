@@ -485,7 +485,7 @@ class TreasureMap:
 
 class RevocationNotice:
     splitter = BytestringSplitter((bytes, 7),
-                                  (bytes, constants.NOTICE_LENGTH(32)),
+                                  (bytes, 32),
                                   Signature)
     def __init__(self, node_id, arrangement_id, signature=None):
         self.node_id = node_id
@@ -499,11 +499,10 @@ class RevocationNotice:
         return constants.NOT_SIGNED
 
     def __len__(self):
-        return len(b'REVOKE-') + len(self.arrangement_id)
+        return len(b'REVOKE-') + 32
 
     @classmethod
     def from_bytes(cls, some_bytes):
-        # TODO: Implement BytestringSplitter
         _, arrangement_id, signature = cls.splitter(some_bytes)
         return cls(None, arrangement_id, signature=signature)
 

@@ -17,6 +17,7 @@ along with nucypher.  If not, see <https://www.gnu.org/licenses/>.
 from constant_sorrow import constants
 
 from nucypher.crypto.splitters import key_splitter, capsule_splitter
+from typing import List
 
 
 class CryptoKit:
@@ -80,7 +81,7 @@ class UmbralMessageKit(MessageKit):
 
 class RevocationKit:
 
-    def __init__(self, revocation_notices):
+    def __init__(self, revocation_notices: List['RevocationNotice']):
         self.revocation_notices = revocation_notices
         self.revocations = dict()
 
