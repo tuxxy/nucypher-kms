@@ -31,6 +31,7 @@ from nucypher.crypto.api import keccak_digest
 from nucypher.crypto.kits import UmbralMessageKit
 from nucypher.crypto.powers import SigningPower, KeyPairBasedPower, PowerUpError
 from nucypher.keystore.keypairs import HostingKeypair
+from nucypher.keystore.keystore import NotFound
 from nucypher.keystore.threading import ThreadedSession
 from nucypher.network.protocols import InterfaceInfo
 from jinja2 import Template
@@ -276,7 +277,7 @@ class ProxyRESTRoutes:
                     self.datastore.del_policy_arrangement(
                         revocation_notice.arrangement_id.hex().encode(),
                         session=session)
-        except:
+        except NotFound:
             return 404
         return 200
 
