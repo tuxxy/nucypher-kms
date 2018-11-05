@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with nucypher.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+
 from contextlib import suppress
 from typing import Dict, ClassVar
 from typing import Tuple
