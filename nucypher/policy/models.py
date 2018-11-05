@@ -487,7 +487,7 @@ class RevocationNotice:
     splitter = BytestringSplitter((bytes, 7),
                                   (bytes, 32),
                                   Signature)
-    def __init__(self, node_id, arrangement_id, signature=None):
+    def __init__(self, node_id=None, arrangement_id=None, signature=None):
         self.node_id = node_id
         self.arrangement_id = arrangement_id
         self.content = b"REVOKE-" + arrangement_id
@@ -504,7 +504,7 @@ class RevocationNotice:
     @classmethod
     def from_bytes(cls, some_bytes):
         _, arrangement_id, signature = cls.splitter(some_bytes)
-        return cls(None, arrangement_id, signature=signature)
+        return cls(node_id=None, arrangement_id=arrangement_id, signature=signature)
 
     def sign(self, signer):
         """
