@@ -21,6 +21,7 @@ import maya
 import os
 import pytest
 from apistar.test import TestClient
+from constant_sorrow import constants
 from umbral.fragments import KFrag
 
 from nucypher.characters.lawful import Bob, Ursula
@@ -70,7 +71,7 @@ def test_mocked_decentralized_grant(blockchain_alice, blockchain_bob, three_agen
 
 
 @pytest.mark.usefixtures('federated_ursulas')
-def test_federated_grant(federated_alice, federated_bob):
+def test_federated_grant_and_revoke(federated_alice, federated_bob):
 
     # Setup the policy details
     m, n = 2, 3
@@ -97,6 +98,16 @@ def test_federated_grant(federated_alice, federated_bob):
         retrieved_kfrag = KFrag.from_bytes(retrieved_policy.kfrag)
 
         assert kfrag == retrieved_kfrag
+
+    # Test RevocationKit is unsigned by default
+    kit = policy.revocation_kit
+    for notice in kit.revocation_notices:
+        assert notice.signature == constants.NOT_SIGNED
+
+    # Test RevocationKit signing and verification
+    kit.sign(federated_alice.stamp)
+    for notice in kit.revocation_notices:
+        assert notice.verify(federated_alice.stamp.as_umbral_pubkey())
 
     # Attempt to revoke the new policy
     failed_revocations = federated_alice.revoke(policy)

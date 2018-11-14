@@ -113,7 +113,7 @@ class MockRestMiddleware(RestMiddleware):
                                       revocation_notice.arrangement_id.hex()),
                                       data=bytes(revocation_notice))
         
-        if not response.status_code == 200:
+        if response.status_code != 200:
             if response.status_code == 404:
                 raise RuntimeError("KFrag doesn't exist to revoke with id {}".format(arrangement_id))
             raise RuntimeError("Bad response: {}".format(response.status_code))
