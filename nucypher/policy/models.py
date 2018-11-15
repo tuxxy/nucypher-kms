@@ -242,10 +242,7 @@ class Policy:
 
         else:  # ...After *all* the policies are enacted
             # Create the revocation notices for Alice.
-            revocation_notices = list()
-            for node_id, arrangement_id in self.treasure_map:
-                revocation_notices.append(RevocationNotice(node_id, arrangement.id))
-            self.revocation_kit = RevocationKit(revocation_notices)
+            self.revocation_kit = RevocationKit(self.treasure_map)
 
             if publish is True:
                 return self.publish(network_middleware)

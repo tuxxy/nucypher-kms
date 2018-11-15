@@ -262,30 +262,27 @@ class ProxyRESTRoutes:
         REST endpoint for revoking/deleting a KFrag from a node.
         TODO: Have Ursula return a signed receipt.
         """
-        from nucypher.policy.models import RevocationNotice
+        from nucypher.crypto.kits import RevocationKit
 
-        revocation_notice = RevocationNotice.from_bytes(request.body)
-
+        revocation = RevocationKit.revocation_from_bytes(request.body)
         try:
             with ThreadedSession(self.db_engine) as session:
                 # Verify the Notice was signed by Alice
                 policy_arrangement = self.datastore.get_policy_arrangement(
-                    revocation_notice.arrangement_id.hex().encode(),
-                    session=session)
+                    id_as_hex.encode(), session=session)
                 alice_pubkey = UmbralPublicKey.from_bytes(
                     policy_arrangement.alice_pubkey_sig.key_data)
 
-                try:
-                    revocation_notice.verify(alice_pubkey)
-                except InvalidSignature:
-                    return 404
-                else:
+                # Check that the request is the same for the provided revocation
+                if not id_as_hex.encode() == revocation.arrangement_id:
+                    return 400
+                elif RevocationKit.verify_revocation(revocation, alice_pubkey):
                     self.datastore.del_policy_arrangement(
-                        revocation_notice.arrangement_id.hex().encode(),
-                        session=session)
-        except NotFound:
+                        id_as_hex.encode(), session=session)
+        except (NotFound, InvalidSignature):
             return 404
-        return 200
+        else:
+            return 200
 
     def reencrypt_via_rest(self, id_as_hex, request: Request):
         from nucypher.policy.models import WorkOrder  # Avoid circular import

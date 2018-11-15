@@ -17,6 +17,7 @@ along with nucypher.  If not, see <https://www.gnu.org/licenses/>.
 from apistar import TestClient
 
 from nucypher.characters.lawful import Ursula
+from nucypher.crypto.kits import RevocationKit
 from nucypher.network.middleware import RestMiddleware
 from nucypher.utilities.sandbox.constants import TEST_KNOWN_URSULAS_CACHE
 
@@ -107,11 +108,11 @@ class MockRestMiddleware(RestMiddleware):
                                     data=map_payload, verify=certificate_filepath)
         return response
 
-    def revoke_arrangement(self, ursula, revocation_notice):
+    def revoke_arrangement(self, ursula, revocation):
         mock_client = self._get_mock_client_by_ursula(ursula)
         response = mock_client.delete('http://localhost/kFrag/{}'.format(
-                                      revocation_notice.arrangement_id.hex()),
-                                      data=bytes(revocation_notice))
+                                      revocation.arrangement_id.hex()),
+                                      data=RevocationKit.revocation_to_bytes(revocation))
         
         if response.status_code != 200:
             if response.status_code == 404:

@@ -170,9 +170,9 @@ class Alice(Character, PolicyAuthor):
         Goes through the RevocationKit in Policy and revokes re-encryption
         access to Bob from each arrangement.
         """
-        # Sign the RevocationNotices in the RevocationKit in preparation for
+        # Sign the revocations in the RevocationKit in preparation for
         # sending to Ursula.
-        policy.revocation_kit.sign(self.stamp)
+        policy.revocation_kit.sign_revocations(self.stamp)
 
         try:
             # Wait for a revocation threshold of nodes to be known ((n - m) + 1)
@@ -184,9 +184,10 @@ class Alice(Character, PolicyAuthor):
             raise e
         else:
             failed_revocations = list()
-            for node_id, notice in policy.revocation_kit:
+            for node_id in policy.revocation_kit.revokable_addresses:
                 ursula = self.known_nodes[node_id]
-                response = self.network_middleware.revoke_arrangement(ursula, notice)
+                revocation = policy.revocation_kit[node_id]
+                response = self.network_middleware.revoke_arrangement(ursula, revocation)
                 if response.status_code != 200:
                     failed_revocations.append(notice)
         return failed_revocations
