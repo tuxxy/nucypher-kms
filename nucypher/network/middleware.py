@@ -77,14 +77,15 @@ class RestMiddleware:
             cfrags_and_signatures)
         return cfrags
 
-    def revoke_arrangement(self, ursula, revocation_notice):
+    def revoke_arrangement(self, ursula, revocation):
         # TODO: Implement revocation receipts
         response = requests.delete("https://{}/kFrag/{}".format(ursula.rest_interface,
-                                                              revocation_notice.arrangement_id.hex()),
-                                 bytes(revocation_notice), verify=ursula.certificate_filepath)
+                                                                revocation.arrangement_id.hex()),
+                                                                b''.join(revocation),
+                                                                verify=ursula.certificate_filepath)
         if not response.status_code == 200:
             if response.status_code == 404:
-                raise RuntimeError("404 - KFrag doesn't exist to revoke with id {}".format(notice.arrangement_id))
+                raise RuntimeError("404 - KFrag doesn't exist to revoke with id {}".format(revocation.arrangement_id))
             raise RuntimeError("Bad response: {}".format(response.content), response.status_code)
         return response
 
