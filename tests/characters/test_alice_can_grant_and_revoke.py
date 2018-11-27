@@ -20,6 +20,7 @@ import datetime
 import maya
 import os
 import pytest
+import time
 
 from apistar.test import TestClient
 from constant_sorrow import constants
@@ -29,10 +30,12 @@ from nucypher.config.storages import LocalFileBasedNodeStorage
 from nucypher.crypto.api import keccak_digest
 from nucypher.crypto.kits import RevocationKit
 from nucypher.crypto.powers import SigningPower, DelegatingPower, EncryptingPower
+from nucypher.keystore.keystore import NotFound
 from nucypher.policy.models import Revocation
 from nucypher.utilities.sandbox.constants import TEST_URSULA_INSECURE_DEVELOPMENT_PASSWORD
 from nucypher.utilities.sandbox.middleware import MockRestMiddleware
 from nucypher.utilities.sandbox.policy import MockPolicyCreation
+from twisted.internet import task
 from umbral.fragments import KFrag
 
 
@@ -103,12 +106,13 @@ def test_federated_grant(federated_alice, federated_bob):
 
 
 @pytest.mark.usefixtures('federated_ursulas')
-def test_revocation(federated_alice, federated_bob):
+def test_federated_revocation(federated_alice, federated_bob):
     m, n = 2, 3
     policy_end_datetime = maya.now() + datetime.timedelta(days=5)
     label = b"revocation test"
 
-    policy = federated_alice.grant(federated_bob, label, m=m, n=n, expiration=policy_end_datetime)
+    policy = federated_alice.grant(federated_bob, label, m=m, n=n,
+                                   expiration=policy_end_datetime)
 
     # Test that all arrangements are included in the RevocationKit
     for node_id, arrangement_id in policy.treasure_map:
@@ -131,6 +135,36 @@ def test_revocation(federated_alice, federated_bob):
     # Try to revoke the already revoked policy
     already_revoked = federated_alice.revoke(policy)
     assert len(already_revoked) == 3
+
+
+@pytest.mark.usefixtures('federated_ursulas')
+def test_arrangement_auto_expiration(federated_alice, federated_bob):
+    test_clock = task.Clock()
+
+    m, n = 2, 3
+    policy_end_datetime = maya.now() + datetime.timedelta(seconds=1)
+    label = b'arrangement auto-expiration test'
+
+    policy = federated_alice.grant(federated_bob, label, m=m, n=n,
+                                   expiration=policy_end_datetime)
+
+    # Test that arrangements exist
+    for kfrag in policy.kfrags:
+        arrangement = policy._enacted_arrangements[kfrag]
+        retrieved_policy = arrangement.ursula.datastore.get_policy_arrangement(
+                arrangement.id.hex().encode())
+        assert retrieved_policy.kfrag == kfrag
+
+    # Advance task clock by 1.5 days to expire arrangement and sleep to advance
+    # computer clock
+    test_clock.advance(129600)
+    time.sleep(2)
+
+    for kfrag in policy.kfrags:
+        arrangement = policy._enacted_arrangements[kfrag]
+        with pytest.raises(NotFound):
+            arrangement.ursula.datastore.get_policy_arrangement(
+                    arrangement.id.hex().encode())
 
 
 def test_alices_powers_are_persistent(federated_ursulas, tmpdir):

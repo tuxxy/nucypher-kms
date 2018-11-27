@@ -35,6 +35,7 @@ from nucypher.crypto.api import keccak_digest
 from nucypher.crypto.kits import UmbralMessageKit
 from nucypher.crypto.powers import SigningPower, KeyPairBasedPower, PowerUpError
 from nucypher.crypto.signing import InvalidSignature
+from nucypher.keystore.db.models import PolicyArrangement
 from nucypher.keystore.keypairs import HostingKeypair
 from nucypher.keystore.keystore import NotFound
 from nucypher.keystore.threading import ThreadedSession
@@ -216,7 +217,8 @@ class ProxyRESTRoutes:
     def _delete_expired_arrangements(self):
         with ThreadedSession(self.db_engine) as session:
             session.query(PolicyArrangement).filter(
-                PolicyArrangement.expiration <= datetime.now()).delete()
+                PolicyArrangement.expiration <= datetime.now()).delete(synchronize_session='fetch')
+            session.commit()
 
     def consider_arrangement(self, request: Request):
         from nucypher.policy.models import Arrangement
