@@ -17,6 +17,7 @@ along with nucypher.  If not, see <https://www.gnu.org/licenses/>.
 
 
 from bytestring_splitter import BytestringSplitter
+from datetime import datetime
 from sqlalchemy.orm import sessionmaker
 from typing import Union
 from umbral.fragments import KFrag
@@ -138,6 +139,16 @@ class KeyStore(object):
         if not policy_arrangement:
               raise NotFound("No PolicyArrangement {} found.".format(arrangement_id))
         return policy_arrangement
+
+    def expire_policy_arrangements(self, session=None):
+        """
+        Queries for PolicyArrangements that are expired and deletes them.
+        """
+        session = session or self._session_on_init_thread
+
+        session.query(PolicyArrangement).filter(
+                PolicyArrangement.expiration <= datetime.now()).delete()
+        session.commit()
 
     def del_policy_arrangement(self, arrangement_id: bytes, session=None):
         """

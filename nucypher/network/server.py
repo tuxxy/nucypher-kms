@@ -23,7 +23,6 @@ from apistar import Route, App
 from apistar.http import Response, Request, QueryParams
 from bytestring_splitter import VariableLengthBytestring
 from constant_sorrow import constants
-from datetime import datetime
 from hendrix.experience import crosstown_traffic
 from twisted.internet import task
 from twisted.logger import Logger
@@ -216,9 +215,7 @@ class ProxyRESTRoutes:
 
     def _delete_expired_arrangements(self):
         with ThreadedSession(self.db_engine) as session:
-            session.query(PolicyArrangement).filter(
-                PolicyArrangement.expiration <= datetime.now()).delete(synchronize_session='fetch')
-            session.commit()
+            self.datastore.expire_policy_arrangements(session=session)
 
     def consider_arrangement(self, request: Request):
         from nucypher.policy.models import Arrangement

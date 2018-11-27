@@ -142,7 +142,7 @@ def test_arrangement_auto_expiration(federated_alice, federated_bob):
     test_clock = task.Clock()
 
     m, n = 2, 3
-    policy_end_datetime = maya.now() + datetime.timedelta(seconds=1)
+    policy_end_datetime = maya.now() + datetime.timedelta(days=-5)
     label = b'arrangement auto-expiration test'
 
     policy = federated_alice.grant(federated_bob, label, m=m, n=n,
