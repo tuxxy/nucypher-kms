@@ -18,13 +18,15 @@ along with nucypher.  If not, see <https://www.gnu.org/licenses/>.
 
 import binascii
 import os
-from twisted.logger import Logger
 
 from apistar import Route, App
 from apistar.http import Response, Request, QueryParams
 from bytestring_splitter import VariableLengthBytestring
 from constant_sorrow import constants
+from datetime import datetime
 from hendrix.experience import crosstown_traffic
+from twisted.internet import task
+from twisted.logger import Logger
 from umbral import pre
 from umbral.fragments import KFrag
 from umbral.keys import UmbralPublicKey
@@ -137,6 +139,7 @@ class ProxyRESTRoutes:
 
         from nucypher.keystore import keystore
         from nucypher.keystore.db import Base
+        from nucypher.keystore.db.models import PolicyArrangement
         from sqlalchemy.engine import create_engine
 
         self.log.info("Starting datastore {}".format(self.db_filepath))
@@ -152,6 +155,11 @@ class ProxyRESTRoutes:
         with open(os.path.join(TEMPLATES_DIR, "basic_status.j2"), "r") as f:
             _status_template_content = f.read()
         self._status_template = Template(_status_template_content)
+
+        # Start task to auto-expire arrangements once per-period (one day).
+        self.__auto_expiration_task = task.LoopingCall(
+            self._delete_expired_arrangements)
+        self.__auto_expiration_task.start(86400)
 
     def public_information(self):
         """
@@ -204,6 +212,11 @@ class ProxyRESTRoutes:
 
         # TODO: What's the right status code here?  202?  Different if we already knew about the node?
         return self.all_known_nodes(request)
+
+    def _delete_expired_arrangements(self):
+        with ThreadedSession(self.db_engine) as session:
+            session.query(PolicyArrangement).filter(
+                PolicyArrangement.expiration <= datetime.now()).delete()
 
     def consider_arrangement(self, request: Request):
         from nucypher.policy.models import Arrangement
