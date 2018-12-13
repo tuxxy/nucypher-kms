@@ -648,3 +648,48 @@ class Revocation:
             raise InvalidSignature(
                 "Revocation has an invalid signature: {}".format(self.signature))
         return True
+
+
+class RevocationReceipt:
+    """
+    A signed receipt from Ursula that they deliver to the revoker to provide
+    some sense of proof that Ursula acknowledged the revocation request.
+    It consists of a signed bytestring of the received revocation, including
+    Alice's signature.
+    """
+    receipt_splitter = BytestringSplitter(Revocation, Signature)
+
+    def __init__(self, revocation: 'Revocation',
+                       signer: 'SignatureStamp' = None,
+                       signature: Signature = None):
+        self.revocation = revocation
+
+        if not (bool(signer) ^ bool(signature)):
+            raise ValueError("Either pass a signer or a signature; not both.")
+        elif signer:
+            self.signature = signer(bytes(self.evocation))
+        elif signature:
+            self.signature = signature
+
+        def __bytes__(self):
+            return bytes(self.revocation) + bytes(self.signature)
+
+        def __repr__(self):
+            return bytes(self)
+
+        def __eq__(self, other):
+            return bytes(self) == bytes(other)
+
+        @classmethod
+        def from_bytes(cls, revocation_receipt_bytes):
+            revocation, signature = cls.receipt_splitter(revocation_receipt_bytes)
+            return cls(revocation=revocation, signature=signature)
+
+        def verify_signature(self, ursula_pubkey: 'UmbralPublicKey'):
+            """
+            Verifies that the receipt was from the provided pubkey.
+            """
+            if not self.signature.verify(bytes(self.revocation)):
+                raise InvalidSignature(
+                    "Receipt has an invalid signature: {}".format(self.signature))
+            return True

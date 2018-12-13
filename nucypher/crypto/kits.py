@@ -108,7 +108,7 @@ class RevocationKit:
         """
         return set(self.revocations.keys())
 
-    def add_confirmation(self, node_id, signed_receipt):
+    def add_receipt(self, node_id, signed_receipt):
         """
         Adds a signed confirmation of Ursula's ability to revoke the arrangement.
         """
