@@ -610,6 +610,8 @@ class Revocation:
     """
     revocation_splitter = BytestringSplitter((bytes, 7), (bytes, 32), Signature)
 
+    def expected_bytes_length(): return 7 + 32 + 64
+
     def __init__(self, arrangement_id: bytes,
                        signer: 'SignatureStamp' = None,
                        signature: Signature = None):
@@ -658,6 +660,8 @@ class RevocationReceipt:
     Alice's signature.
     """
     receipt_splitter = BytestringSplitter(Revocation, Signature)
+
+    def expected_bytes_length(): return 7 + 32 + 64 + 64
 
     def __init__(self, revocation: 'Revocation',
                        signer: 'SignatureStamp' = None,
