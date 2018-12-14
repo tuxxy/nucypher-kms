@@ -671,29 +671,29 @@ class RevocationReceipt:
         if not (bool(signer) ^ bool(signature)):
             raise ValueError("Either pass a signer or a signature; not both.")
         elif signer:
-            self.signature = signer(bytes(self.evocation))
+            self.signature = signer(bytes(self.revocation))
         elif signature:
             self.signature = signature
 
-        def __bytes__(self):
-            return bytes(self.revocation) + bytes(self.signature)
+    def __bytes__(self):
+        return bytes(self.revocation) + bytes(self.signature)
 
-        def __repr__(self):
-            return bytes(self)
+    def __repr__(self):
+        return bytes(self)
 
-        def __eq__(self, other):
-            return bytes(self) == bytes(other)
+    def __eq__(self, other):
+        return bytes(self) == bytes(other)
 
-        @classmethod
-        def from_bytes(cls, revocation_receipt_bytes):
-            revocation, signature = cls.receipt_splitter(revocation_receipt_bytes)
-            return cls(revocation=revocation, signature=signature)
+    @classmethod
+    def from_bytes(cls, revocation_receipt_bytes):
+        revocation, signature = cls.receipt_splitter(revocation_receipt_bytes)
+        return cls(revocation=revocation, signature=signature)
 
-        def verify_signature(self, ursula_pubkey: 'UmbralPublicKey'):
-            """
-            Verifies that the receipt was from the provided pubkey.
-            """
-            if not self.signature.verify(bytes(self.revocation)):
-                raise InvalidSignature(
-                    "Receipt has an invalid signature: {}".format(self.signature))
-            return True
+    def verify_signature(self, ursula_pubkey: 'UmbralPublicKey'):
+        """
+        Verifies that the receipt was from the provided pubkey.
+        """
+        if not self.signature.verify(bytes(self.revocation), ursula_pubkey):
+            raise InvalidSignature(
+                "Receipt has an invalid signature: {}".format(self.signature))
+        return True

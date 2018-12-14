@@ -29,7 +29,7 @@ from nucypher.config.characters import AliceConfiguration
 from nucypher.crypto.api import keccak_digest
 from nucypher.crypto.powers import SigningPower, DecryptingPower
 from nucypher.crypto.signing import InvalidSignature
-from nucypher.policy.models import Revocation
+from nucypher.policy.models import Revocation, RevocationReceipt
 from nucypher.utilities.sandbox.constants import INSECURE_DEVELOPMENT_PASSWORD
 from nucypher.utilities.sandbox.middleware import MockRestMiddleware
 from nucypher.utilities.sandbox.policy import MockPolicyCreation
@@ -157,6 +157,35 @@ def test_revocation_model(federated_alice):
                       signature=bad_signature)
     with pytest.raises(InvalidSignature):
         rev3.verify_signature(federated_alice.stamp.as_umbral_pubkey())
+
+
+def test_revocation_receipt_model(federated_alice, federated_ursulas):
+    test_arrangement_id = b'this_is_a_test'
+    test_revocation = Revocation(arrangement_id=test_arrangement_id,
+                                 signer=list(federated_ursulas)[0].stamp)
+    test_rec_signature = list(federated_ursulas)[0].stamp(bytes(test_revocation))
+
+    with pytest.raises(ValueError):
+        RevocationReceipt(test_revocation,
+                          list(federated_ursulas)[0].stamp,
+                          test_rec_signature)
+
+    # Test Receipt from signer
+    rec1 = RevocationReceipt(revocation=test_revocation,
+                             signer=list(federated_ursulas)[0].stamp)
+    assert rec1.verify_signature(list(federated_ursulas)[0].stamp.as_umbral_pubkey())
+
+    # Test Receipt from signature
+    rec2 = RevocationReceipt(revocation=test_revocation,
+                             signature=test_rec_signature)
+    assert rec2.verify_signature(list(federated_ursulas)[0].stamp.as_umbral_pubkey())
+
+    # Test signature failure via bad prefix
+    bad_signature = list(federated_ursulas)[0].stamp(b'BADSIG-' + bytes(test_revocation))
+    rec3 = RevocationReceipt(revocation=test_revocation,
+                             signature=bad_signature)
+    with pytest.raises(InvalidSignature):
+        rec3.verify_signature(list(federated_ursulas)[0].stamp.as_umbral_pubkey())
 
 
 def test_alices_powers_are_persistent(federated_ursulas, tmpdir):
