@@ -28,6 +28,7 @@ from nucypher.characters.lawful import Bob
 from nucypher.config.characters import AliceConfiguration
 from nucypher.crypto.api import keccak_digest
 from nucypher.crypto.powers import SigningPower, DecryptingPower
+from nucypher.crypto.signing import InvalidSignature
 from nucypher.policy.models import Revocation
 from nucypher.utilities.sandbox.constants import INSECURE_DEVELOPMENT_PASSWORD
 from nucypher.utilities.sandbox.middleware import MockRestMiddleware
@@ -129,6 +130,33 @@ def test_revocation(federated_alice, federated_bob):
     # Try to revoke the already revoked policy
     already_revoked = federated_alice.revoke(policy)
     assert len(already_revoked) == 3
+
+
+def test_revocation_model(federated_alice):
+    test_arrangement_id = b'this_is_a_test'
+    test_signature = federated_alice.stamp(b'REVOKE-' + test_arrangement_id)
+
+    with pytest.raises(ValueError):
+        Revocation(test_arrangement_id,
+                   federated_alice.stamp,
+                   test_signature)
+
+    # Test Revocation from signer
+    rev1 = Revocation(arrangement_id=test_arrangement_id,
+                      signer=federated_alice.stamp)
+    assert rev1.verify_signature(federated_alice.stamp.as_umbral_pubkey())
+
+    # Test Revocation from signature
+    rev2 = Revocation(arrangement_id=test_arrangement_id,
+                      signature=test_signature)
+    assert rev2.verify_signature(federated_alice.stamp.as_umbral_pubkey())
+
+    # Test signature failure via bad prefix
+    bad_signature = federated_alice.stamp(b'BADSIG-' + test_arrangement_id)
+    rev3 = Revocation(arrangement_id=test_arrangement_id,
+                      signature=bad_signature)
+    with pytest.raises(InvalidSignature):
+        rev3.verify_signature(federated_alice.stamp.as_umbral_pubkey())
 
 
 def test_alices_powers_are_persistent(federated_ursulas, tmpdir):
