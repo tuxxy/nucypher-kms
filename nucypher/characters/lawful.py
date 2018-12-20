@@ -178,6 +178,8 @@ class Alice(Character, PolicyAuthor):
         dict as a key, and the revocation and Ursula's response is added as
         a value.
         """
+        from nucypher.policy.models import RevocationReceipt
+
         try:
             # Wait for a revocation threshold of nodes to be known ((n - m) + 1)
             revocation_threshold = ((policy.n - policy.treasure_map.m) + 1)
@@ -187,14 +189,17 @@ class Alice(Character, PolicyAuthor):
         except self.NotEnoughTeachers as e:
             raise e
         else:
-            failed_revocations = dict()
+            attempted_revocations = dict()
             for node_id in policy.revocation_kit.revokable_addresses:
                 ursula = self.known_nodes[node_id]
                 revocation = policy.revocation_kit[node_id]
                 response = self.network_middleware.revoke_arrangement(ursula, revocation)
-                if response.status_code != 200:
-                    failed_revocations[node_id] = (revocation, response.status_code)
-        return failed_revocations
+
+                receipt = None
+                if response.status_code == 200:
+                    receipt = RevocationReceipt.from_bytes(response.content)
+                attempted_revocations[node_id] = (revocation, receipt, response.status_code)
+        return attempted_revocations
 
 
 class Bob(Character):

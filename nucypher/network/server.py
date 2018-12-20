@@ -301,7 +301,7 @@ class ProxyRESTRoutes:
         """
         REST endpoint for revoking/deleting a KFrag from a node.
         """
-        from nucypher.policy.models import Revocation
+        from nucypher.policy.models import Revocation, RevocationReceipt
 
         revocation = Revocation.from_bytes(request.body)
         self.log.info("Received revocation: {} -- for arrangement {}".format(bytes(revocation), id_as_hex))
@@ -325,7 +325,9 @@ class ProxyRESTRoutes:
             return Response(content='KFrag not found or revocation signature is invalid.', status_code=404)
         else:
             self.log.info("KFrag successfully removed.")
-            return Response(content='KFrag deleted!', status_code=200)
+            # Generate Receipt for revoker
+            receipt = RevocationReceipt(revocation, signer=self._stamp)
+            return Response(content=bytes(receipt), status_code=200)
 
     def reencrypt_via_rest(self, id_as_hex, request: Request):
         from nucypher.policy.models import WorkOrder  # Avoid circular import
