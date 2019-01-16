@@ -119,6 +119,9 @@ class NodeConfiguration(ABC):
                  rest_host: str = None,
                  rest_port: int = None,
 
+                 # RPC
+                 rpc_enabled: bool = False,
+
                  # TLS
                  tls_curve: EllipticCurve = None,
                  certificate: Certificate = None,
@@ -155,6 +158,9 @@ class NodeConfiguration(ABC):
         self.rest_port = rest_port or default_port
         self.tls_curve = tls_curve or self.__DEFAULT_TLS_CURVE
         self.certificate = certificate
+
+        # RPC
+        self.rpc_enabled = rpc_enabled
 
         self.interface_signature = interface_signature
         self.crypto_power = crypto_power
