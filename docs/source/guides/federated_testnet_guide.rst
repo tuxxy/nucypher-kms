@@ -77,7 +77,7 @@ Install nucypher with git and pip3 into your virtual environment
     
 .. code::
 
-    (nucypher)$ pip3 install git+https://github.com/nucypher/nucypher.git@master
+    (nucypher)$ pip3 install nucypher
 
 Re-activate your environment after installing
     
