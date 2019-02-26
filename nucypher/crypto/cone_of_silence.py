@@ -19,7 +19,9 @@ import json
 import os
 
 from twisted.protocols.basic import LineReceiver
+from umbral.keys import UmbralPrivateKey, derive_key_from_password,
 
+from nucypher.config.keyring import _derive_wrapping_key_from_key_material
 from nucypher.crypto.powers import DelegatingPower
 
 
@@ -57,6 +59,9 @@ class Keyring:
                  power_set: 'CryptoPowerSet' = None):
         if not (bool(keyring_file) ^ bool(power_set)):
             raise ValueError("You must pass either a keyring_file or a power_set.")
+
+        self.__derived_key = None
+        self.keyring_data = None
 
         if keyring_file:
             self.is_unlocked = False
@@ -101,20 +106,38 @@ class Keyring:
         if not self.is_unlocked:
             raise Keyring.Locked("You cannot deserialize the Keyring file when the Keyring is locked.")
 
-        try:
-            with open(self._keyring_file, 'rb') as f:
-                self.keyring_data = json.loads(f.read())
-        except FileNotFoundError:
-            raise FileNotFoundError(f"Keyring file {self._keyring_file} doesn't exist")
-        pass
+        if not self.keyring_data:
+            try:
+                with open(self._keyring_file, 'rb') as f:
+                    self.keyring_data = json.loads(f.read())
+            except FileNotFoundError:
+                raise FileNotFoundError(f"Keyring file {self._keyring_file} doesn't exist")
 
-    def unlock(self, passphrase: str):
+        if decrypt:
+            keys = self.keyring_data['keys']
+            for key in keys:
+                wrapping_key = _derive_wrapping_key_from_key_material(
+                                                salt=key['wrapping_salt'],
+                                                key_material=self.__derived_key)
+                if key['power_up'] == 'DelegatingPower':
+                    key = 
+                key = UmbralPrivateKey.from_bytes(key['key_data'],
+                                                  wrapping_key=wrapping_key)
+
+
+    def unlock(self, password: str):
         """
         Unlocks and decrypts the Keyring and caches the derived key
         if the key is not cached.
         """
         if self.is_unlocked:
             raise Keyring.Unlocked("The Keyring is already unlocked.")
+
+        # Deserialize the keyring file w/o decrypting first to get salts
+        self.__deserialize_keyring_file(decrypt=False)
+        self.__derived_key = derive_key_from_password(
+                                    password=password.encode(),
+                                    salt=self.keyring_data['master_salt'])
         pass
 
     def lock(self):
