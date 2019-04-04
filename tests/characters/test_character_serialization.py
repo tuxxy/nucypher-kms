@@ -16,6 +16,7 @@ along with nucypher.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from nucypher.characters.lawful import Ursula
+from nucypher.policy.models import Arrangement
 
 
 def test_serialize_ursula(federated_ursulas):
@@ -23,3 +24,15 @@ def test_serialize_ursula(federated_ursulas):
     ursula_as_bytes = bytes(ursula)
     ursula_object = Ursula.from_bytes(ursula_as_bytes, federated_only=True)
     assert ursula == ursula_object
+
+
+def test_serialize_arrangement(enacted_federated_policy):
+    test_arrangement = list(enacted_federated_policy._accepted_arrangements)[0]
+    serialized_arrangement = bytes(test_arrangement)
+    assert type(serialized_arrangement) == bytes
+
+    deserialized_arrangement = Arrangement.from_bytes(serialized_arrangement)
+    assert type(deserialized_arrangement) == Arrangement
+    assert test_arrangement.expiration == deserialized_arrangement.expiration
+    assert test_arrangement.id == deserialized_arrangement.id
+    assert test_arrangement.alice == deserialized_arrangement.alice
