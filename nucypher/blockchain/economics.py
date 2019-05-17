@@ -168,7 +168,7 @@ class TokenEconomics:
         return tuple(map(int, deploy_parameters))
 
 
-def SpeedyTokenEconomics(TokenEconomics):
+class SpeedyTokenEconomics(TokenEconomics):
     """
     Test class for "fast" economics where periods are significantly shorter.
     This is not intended for a Mainnet release.
