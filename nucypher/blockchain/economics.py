@@ -168,6 +168,15 @@ class TokenEconomics:
         return tuple(map(int, deploy_parameters))
 
 
+def SpeedyTokenEconomics(TokenEconomics):
+    """
+    Test class for "fast" economics where periods are significantly shorter.
+    This is not intended for a Mainnet release.
+    """
+
+    hours_per_period = 1
+
+
 class SlashingEconomics:
 
     algorithm_sha256 = 1

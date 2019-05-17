@@ -350,7 +350,7 @@ class Miner(NucypherTokenActor):
     Ursula baseclass for blockchain operations, practically carrying a pickaxe.
     """
 
-    __current_period_sample_rate = 60*60  # seconds
+    __current_period_sample_rate = 60*20  # seconds * minutes
 
     class MinerError(NucypherTokenActor.ActorError):
         pass
