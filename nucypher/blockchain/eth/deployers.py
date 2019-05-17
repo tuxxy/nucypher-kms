@@ -383,10 +383,11 @@ class PolicyManagerDeployer(ContractDeployer):
         agent = self.agency(blockchain=self.blockchain, contract=self._contract)
         return agent
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, economics=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.token_agent = NucypherTokenAgent(blockchain=self.blockchain)
         self.miner_agent = MinerAgent(blockchain=self.blockchain)
+        self.economics = economics
 
     def deploy(self, secret_hash: bytes, gas_limit: int = None) -> Dict[str, str]:
         self.check_deployment_readiness()
@@ -513,11 +514,12 @@ class UserEscrowProxyDeployer(ContractDeployer):
     contract_name = 'UserEscrowProxy'
     __proxy_deployer = LibraryLinkerDeployer
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, economics=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.token_agent = NucypherTokenAgent(blockchain=self.blockchain)
         self.miner_agent = MinerAgent(blockchain=self.blockchain)
         self.policy_agent = PolicyAgent(blockchain=self.blockchain)
+        self.economics = economics
 
     def __get_state_contract(self) -> str:
         return self.contract.functions.getStateContract()

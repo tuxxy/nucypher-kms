@@ -21,6 +21,7 @@ import click
 import maya
 from web3.exceptions import TimeExhausted
 
+from nucypher.blockchain.economics import SpeedyTokenEconomics
 from nucypher.blockchain.eth.actors import Deployer
 from nucypher.blockchain.eth.agents import NucypherTokenAgent
 from nucypher.blockchain.eth.chains import Blockchain
@@ -52,6 +53,7 @@ from nucypher.config.constants import DEFAULT_CONFIG_ROOT
 @click.option('--registry-outfile', help="Output path for contract registry file", type=click.Path(file_okay=True))
 @click.option('--allocation-infile', help="Input path for token allocation JSON file", type=EXISTING_READABLE_FILE)
 @click.option('--allocation-outfile', help="Output path for token allocation JSON file", type=click.Path(exists=False, file_okay=True))
+@click.option('--speedy-net', help="Intended for testing; deploys the network with significantly sped-up economics", is_flag=True)
 @nucypher_deployer_config
 def deploy(click_config,
            action,
@@ -72,7 +74,8 @@ def deploy(click_config,
            recipient_address,
            config_root,
            sync,
-           force):
+           force,
+           speedy_net):
     """Manage contract and registry deployment"""
 
     ETH_NODE = None
@@ -240,10 +243,15 @@ def deploy(click_config,
         # DEPLOY < -------
         #
 
+        economics = None
+        if speedy_net:
+            economics = SpeedyTokenEconomics()
+
         txhashes, deployers = deployer.deploy_network_contracts(miner_secret=secrets.miner_secret,
                                                                 policy_secret=secrets.policy_secret,
                                                                 adjudicator_secret=secrets.mining_adjudicator_secret,
-                                                                user_escrow_proxy_secret=secrets.escrow_proxy_secret)
+                                                                user_escrow_proxy_secret=secrets.escrow_proxy_secret,
+                                                                economics=economics)
 
         # Success
         __deployment_transactions.update(txhashes)

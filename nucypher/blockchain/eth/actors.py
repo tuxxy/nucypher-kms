@@ -194,10 +194,11 @@ class Deployer(NucypherTokenActor):
                         contract_name: str,
                         gas_limit: int = None,
                         plaintext_secret: str = None,
+                        economics=None,
                         ) -> Tuple[dict, ContractDeployer]:
 
         Deployer = self.__get_deployer(contract_name=contract_name)
-        deployer = Deployer(blockchain=self.blockchain, deployer_address=self.deployer_address)
+        deployer = Deployer(blockchain=self.blockchain, deployer_address=self.deployer_address, economics=economics)
         if Deployer._upgradeable:
             if not plaintext_secret:
                 raise ValueError("Upgrade plaintext_secret must be passed to deploy an upgradeable contract.")
@@ -237,13 +238,14 @@ class Deployer(NucypherTokenActor):
                                  policy_secret: str,
                                  adjudicator_secret: str,
                                  user_escrow_proxy_secret: str,
+                                 economics=None,
                                  ) -> Tuple[dict, dict]:
         """
         Musketeers, if you will; Deploy the "big three" contracts to the blockchain.
         """
 
-        token_txs, token_deployer = self.deploy_contract(contract_name='NuCypherToken')
-        miner_txs, miner_deployer = self.deploy_contract(contract_name='MinersEscrow', plaintext_secret=miner_secret)
+        token_txs, token_deployer = self.deploy_contract(contract_name='NuCypherToken', economics=economics)
+        miner_txs, miner_deployer = self.deploy_contract(contract_name='MinersEscrow', plaintext_secret=miner_secret, economics=economics)
         policy_txs, policy_deployer = self.deploy_contract(contract_name='PolicyManager', plaintext_secret=policy_secret)
         adjudicator_txs, adjudicator_deployer = self.deploy_contract(contract_name='MiningAdjudicator', plaintext_secret=adjudicator_secret)
         user_escrow_proxy_txs, user_escrow_proxy_deployer = self.deploy_contract(contract_name='UserEscrowProxy', plaintext_secret=user_escrow_proxy_secret)
