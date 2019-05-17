@@ -471,8 +471,7 @@ def ursula(click_config,
         if not value:
             min_locked = NU(URSULA.economics.minimum_allowed_locked, 'NuNit')
             value = click.prompt(f"Enter stake value", type=STAKE_VALUE, default=min_locked)
-        else:
-            value = NU(int(value), 'NU')
+        value = NU(value, 'NU')
 
         # Duration
         if not quiet:
@@ -499,8 +498,10 @@ def ursula(click_config,
         if not force:
             click.confirm("Publish staged stake to the blockchain?", abort=True)
 
-        stake = URSULA.initialize_stake(amount=int(value), lock_periods=duration)
-        painting.paint_staking_confirmation(ursula=URSULA, transactions=stake.transactions)
+        stake = URSULA.initialize_stake(amount=value.to_nunits(),
+                                        lock_periods=duration)
+        painting.paint_staking_confirmation(ursula=URSULA,
+                                            transactions=stake.transactions)
         return
 
     elif action == 'confirm-activity':
