@@ -19,6 +19,7 @@ from sqlalchemy import (
     Column, Integer, LargeBinary, ForeignKey, Boolean, DateTime
 )
 from sqlalchemy.orm import relationship
+from sqlalchemy.types import JSON
 
 from nucypher.crypto.utils import fingerprint_from_key
 from nucypher.keystore.db import Base
@@ -59,6 +60,7 @@ class PolicyArrangement(Base):
 
     # TODO: Maybe this will be two signatures - one for the offer, one for the KFrag.
     alice_signature = Column(LargeBinary, unique=True, nullable=True)
+    policy_metadata = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     def __init__(self,
@@ -66,7 +68,8 @@ class PolicyArrangement(Base):
                  id,
                  kfrag=None,
                  alice_verifying_key=None,
-                 alice_signature=None
+                 alice_signature=None,
+                 policy_metadata=None
                  ) -> None:
 
         self.expiration = expiration
@@ -74,6 +77,7 @@ class PolicyArrangement(Base):
         self.kfrag = kfrag
         self.alice_verifying_key = alice_verifying_key
         self.alice_signature = alice_signature
+        self.policy_metadata = policy_metadata
 
     def __repr__(self):
         return f'{self.__class__.__name__}(id={self.id})'

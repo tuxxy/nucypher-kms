@@ -14,6 +14,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with nucypher.  If not, see <https://www.gnu.org/licenses/>.
 """
+import json
 import pytest
 from datetime import datetime
 
@@ -41,10 +42,12 @@ def test_policy_arrangement_sqlite_keystore(test_keystore):
 
     arrangement_id = b'test'
 
+    policy_metadata = {'test': 'serendipity is the spice of life'}
+
     # Test add PolicyArrangement
     new_arrangement = test_keystore.add_policy_arrangement(
             datetime.utcnow(), b'test', arrangement_id, alice_verifying_key=alice_keypair_sig.pubkey,
-            alice_signature=b'test'
+            alice_signature=b'test', policy_metadata=policy_metadata
     )
 
     # Test get PolicyArrangement

@@ -101,6 +101,7 @@ class KeyStore(object):
     def add_policy_arrangement(self, expiration, id, kfrag=None,
                                alice_verifying_key=None,
                                alice_signature=None,
+                               policy_metadata=None,
                                session=None) -> PolicyArrangement:
         """
         Creates a PolicyArrangement to the Keystore.
@@ -115,7 +116,7 @@ class KeyStore(object):
 
         new_policy_arrangement = PolicyArrangement(
             expiration, id, kfrag, alice_verifying_key=alice_key_instance,
-            alice_signature=None, # bob_verifying_key.id
+            alice_signature=None, policy_metadata=policy_metadata # bob_verifying_key.id
         )
 
         session.add(new_policy_arrangement)
