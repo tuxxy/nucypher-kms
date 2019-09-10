@@ -197,7 +197,8 @@ class Alice(Character, BlockchainPolicyAuthor):
                        kfrags=kfrags,
                        public_key=public_key,
                        m=policy_params['m'],
-                       expiration=policy_params['expiration'])
+                       expiration=policy_params['expiration'],
+                       policy_metadata=policy_params['policy_metadata'])
 
         if self.federated_only:
             # Use known nodes
@@ -217,6 +218,7 @@ class Alice(Character, BlockchainPolicyAuthor):
                                    n: int = None,
                                    duration_periods: int = None,
                                    expiration: maya.MayaDT = None,
+                                   policy_metadata: dict = None,
                                    *args, **kwargs
                                    ) -> dict:
         """
@@ -229,7 +231,9 @@ class Alice(Character, BlockchainPolicyAuthor):
         # Merge injected and default params.
         m = m or self.m
         n = n or self.n
-        base_payload = dict(m=m, n=n, expiration=expiration)
+        policy_metadata = policy_metadata or None
+        base_payload = dict(m=m, n=n, expiration=expiration,
+                            policy_metadata=policy_metadata)
 
         # Calculate Policy Rate and Value
         if not self.federated_only:

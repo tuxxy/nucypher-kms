@@ -171,7 +171,8 @@ class Policy(ABC):
                  kfrags=(UNKNOWN_KFRAG,),
                  public_key=None,
                  m: int = None,
-                 alice_signature=NOT_SIGNED) -> None:
+                 alice_signature=NOT_SIGNED,
+                 policy_metadata: dict = None) -> None:
 
         """
         :param kfrags:  A list of KFrags to distribute per this Policy.
@@ -198,6 +199,7 @@ class Policy(ABC):
         self._published_arrangements = OrderedDict()
 
         self.alice_signature = alice_signature  # TODO: This is unused / To Be Implemented?
+        self.policy_metadata = policy_metadata
 
     class MoreKFragsThanArrangements(TypeError):
         """

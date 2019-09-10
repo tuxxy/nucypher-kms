@@ -49,7 +49,8 @@ def test_decentralized_grant(blockchain_alice, blockchain_bob, agency):
                                     m=2,
                                     n=n,
                                     rate=int(1e18),  # one ether
-                                    expiration=policy_end_datetime)
+                                    expiration=policy_end_datetime,
+                                    policy_metadata={'test': 'serendipity'})
 
     # Check the policy ID
     policy_id = keccak_digest(policy.label + bytes(policy.bob.stamp))
@@ -70,6 +71,7 @@ def test_decentralized_grant(blockchain_alice, blockchain_bob, agency):
         retrieved_kfrag = KFrag.from_bytes(retrieved_policy.kfrag)
 
         assert kfrag == retrieved_kfrag
+        assert retrieved_policy.policy_metadata == {'test': 'serendipity'}
 
 
 @pytest.mark.usefixtures('federated_ursulas')
