@@ -19,8 +19,8 @@ import binascii
 import os
 from typing import Tuple
 
-from flask import Flask, Response
-from flask import request
+import requests
+from flask import Flask, Response, request
 from jinja2 import Template, TemplateError
 from twisted.logger import Logger
 from umbral import pre
@@ -121,6 +121,26 @@ def make_rest_app(
             mimetype='application/octet-stream')
 
         return response
+
+    @rest_app.route("/ping")
+    def ping():
+        """
+        Returns network information about the accessor's connection to
+        the node.
+        TODO: Parameterize the port.
+        TODO: Fix certificate verification check so we don't pass verify=False
+        TODO: Figure out how to test this.
+        """
+        node_ip = request.environ['REMOTE_ADDR']
+
+        try:
+            result = requests.get(f"https://{node_ip}:9151/public_information", verify=False)
+        except requests.exceptions.ConnectionError:
+            return Response(status=400)
+
+        if result.status_code != 200:
+            return Response(status=400)
+        return Response(status=200)
 
     @rest_app.route('/node_metadata', methods=["GET"])
     def all_known_nodes():

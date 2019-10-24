@@ -206,6 +206,15 @@ class RestMiddleware:
                                    certificate_filepath=certificate_filepath)
         return response.content
 
+    def ping(self, host, port, certificate_filepath=None):
+        response = self.client.get(host=host, port=port,
+                                   path="ping",
+                                   timeout=2,
+                                   certificate_filepath=certificate_filepath)
+        if response.status_code != 200:
+            raise RuntimeError("Your node could not successfully be pinged from the remote node.")
+        return True
+
     def get_nodes_via_rest(self,
                            node,
                            announce_nodes=None,
