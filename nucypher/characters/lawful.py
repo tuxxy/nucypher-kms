@@ -14,7 +14,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with nucypher.  If not, see <https://www.gnu.org/licenses/>.
 """
-
+import contextlib
 import json
 import random
 from base64 import b64encode, b64decode
@@ -25,6 +25,7 @@ from random import shuffle
 import maya
 import time
 
+from twisted._threads._ithreads import AlreadyQuit
 from twisted.python.threadpool import ThreadPool
 
 from bytestring_splitter import BytestringKwargifier, BytestringSplittingError
@@ -444,10 +445,23 @@ class Alice(Character, BlockchainPolicyAuthor):
 
         return controller
 
+    def is_running(self) -> bool:
+        """Returns True if this character has any running services currently."""
+        super_running = super().is_running
+        alive_threads = lambda: any(t for t in self.publication_threadpool.threads if t.is_alive())  # lazy
+        checks = (super_running, alive_threads)
+        for check in checks:
+            if check():
+                return True
+        return False
+
     def disenchant(self):
         self.log.debug(f"disenchanting {self}")
         super().disenchant()
-        self.publication_threadpool.stop()
+        try:
+            self.publication_threadpool.stop()
+        except AlreadyQuit:
+            pass  # TODO: something else?
 
 
 class Bob(Character):
@@ -1033,7 +1047,7 @@ class Ursula(Teacher, Character, Worker):
 
         if is_me:
             # In-Memory TreasureMap tracking
-            self._stored_treasure_maps = dict()
+            self._stored_treasure_maps = dict()  # TODO: Something more persistent (See PR #2132)
 
             # Learner
             self._start_learning_now = start_learning_now
@@ -1069,14 +1083,20 @@ class Ursula(Teacher, Character, Worker):
                 f"Created decentralized identity evidence: {self.decentralized_identity_evidence[:10].hex()}")
             decentralized_identity_evidence = self.decentralized_identity_evidence
 
-            Worker.__init__(self,
-                            is_me=is_me,
-                            registry=self.registry,
-                            checksum_address=checksum_address,
-                            worker_address=worker_address,
-                            work_tracker=work_tracker,
-                            start_working_now=start_working_now,
-                            block_until_ready=block_until_ready)
+            try:
+                Worker.__init__(self,
+                                is_me=is_me,
+                                registry=self.registry,
+                                checksum_address=checksum_address,
+                                worker_address=worker_address,
+                                work_tracker=work_tracker,
+                                start_working_now=start_working_now,
+                                block_until_ready=block_until_ready)
+            except (Exception, self.WorkerError):  # FIXME
+                # TODO: Do not announce self to "other nodes" until this init is finished.
+                # It's not possible to finish constructing this node.
+                self.stop(halt_reactor=False)
+                raise
 
         if not crypto_power or (TLSHostingPower not in crypto_power):
 
@@ -1199,7 +1219,8 @@ class Ursula(Teacher, Character, Worker):
             if emitter:
                 emitter.message(f"✓ Database pruning", color='green')
 
-        # if learning:
+        # TODO: block until specific nodes are known here?
+        # if learning:  # TODO: Include learning startup here with the rest of the services?
         #     self.start_learning_loop(now=self._start_learning_now)
         #     if emitter:
         #         emitter.message(f"✓ Node Discovery ({','.join(self.learning_domains)})", color='green')
@@ -1255,15 +1276,27 @@ class Ursula(Teacher, Character, Worker):
         elif start_reactor:  # ... without hendrix
             reactor.run()  # <--- Blocking Call (Reactor)
 
+    def is_running(self) -> bool:
+        """Returns True if this character has any running services currently."""
+        # TODO: Glean the status of all of Ursula's services.
+        # Sync up with start/stop logic ... it's a "service"
+        super_running = super().is_running()
+        return super_running
+
     def stop(self, halt_reactor: bool = False) -> None:
-        """Stop services"""
+        """
+        Stop services for partially or fully initialized characters.
+        # CAUTION #
+        """
         self.log.debug(f"---------Stopping {self}")
-        self._availability_tracker.stop()
-        self.stop_learning_loop()
-        if not self.federated_only:
-            self.work_tracker.stop()
-        if self._arrangement_pruning_task.running:
-            self._arrangement_pruning_task.stop()
+        # Handles the shutdown of a partially initialized character.
+        with contextlib.suppress(AttributeError):  # TODO: Is this acceptable here, what are alternatives?
+            self._availability_tracker.stop()
+            self.stop_learning_loop()
+            if not self.federated_only:
+                self.work_tracker.stop()
+            if self._arrangement_pruning_task.running:
+                self._arrangement_pruning_task.stop()
         if halt_reactor:
             reactor.stop()
 

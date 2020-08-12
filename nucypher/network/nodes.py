@@ -16,7 +16,6 @@ along with nucypher.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import contextlib
-import inspect
 import time
 from collections import defaultdict
 from collections import deque
@@ -25,23 +24,34 @@ from queue import Queue
 from typing import Set, Tuple, Union
 
 import maya
-import pytest
 import requests
-from cryptography.exceptions import InvalidSignature
+from bytestring_splitter import (
+    BytestringSplitter,
+    BytestringSplittingError,
+    PartiallyKwargifiedBytes,
+    VariableLengthBytestring
+)
+from constant_sorrow import constant_or_bytes
+from constant_sorrow.constants import (
+    CERTIFICATE_NOT_SAVED,
+    FLEET_STATES_MATCH,
+    NEVER_SEEN,
+    NOT_SIGNED,
+    NO_KNOWN_NODES,
+    NO_STORAGE_AVAILIBLE,
+    UNKNOWN_FLEET_STATE,
+    UNKNOWN_VERSION,
+    RELAX
+)
 from cryptography.x509 import Certificate
 from eth_utils import to_checksum_address
 from requests.exceptions import SSLError
 from twisted.internet import reactor, task
 from twisted.internet.defer import Deferred
 from twisted.logger import Logger
-from typing import Set, Tuple, Union
+from umbral.signing import Signature
 
 import nucypher
-from bytestring_splitter import BytestringSplitter, BytestringSplittingError, PartiallyKwargifiedBytes, \
-    VariableLengthBytestring
-from constant_sorrow import constant_or_bytes
-from constant_sorrow.constants import (CERTIFICATE_NOT_SAVED, FLEET_STATES_MATCH, NEVER_SEEN, NOT_SIGNED,
-                                       NO_KNOWN_NODES, NO_STORAGE_AVAILIBLE, UNKNOWN_FLEET_STATE, UNKNOWN_VERSION, RELAX)
 from nucypher.acumen.nicknames import nickname_from_seed
 from nucypher.acumen.perception import FleetSensor, icon_from_checksum
 from nucypher.blockchain.economics import EconomicsFactory
@@ -59,9 +69,7 @@ from nucypher.network.exceptions import NodeSeemsToBeDown
 from nucypher.network.middleware import RestMiddleware
 from nucypher.network.protocols import SuspiciousActivity
 from nucypher.network.server import TLSHostingPower
-from umbral.signing import Signature
 from nucypher.utilities.logging import Logger
-
 
 
 class NodeSprout(PartiallyKwargifiedBytes):
@@ -83,8 +91,7 @@ class NodeSprout(PartiallyKwargifiedBytes):
 
     def __hash__(self):
         if not self._hash:
-            self._hash = int.from_bytes(self.public_address,
-                                        byteorder="big")  # stop-propagation logic (ie, only propagate verified, staked nodes) keeps this unique and BFT.
+            self._hash = int.from_bytes(self.public_address, byteorder="big")  # stop-propagation logic (ie, only propagate verified, staked nodes) keeps this unique and BFT.
         return self._hash
 
     def __repr__(self):
@@ -264,23 +271,29 @@ class Learner:
         self._learning_task = task.LoopingCall(self.keep_learning_about_nodes, learner=self, frames=frames)
         self._init_frames = frames
         from tests.conftest import global_mutable_where_everybody
-        for frame in frames:
-            try:
-                test_name = frame.frame.f_locals['request'].module.__name__
-                break
-            except KeyError:
-                try:
-                    if frame.function.startswith("test"):
-                        test_name = frame.function
-                        break
-                    else:
-                        continue
-                except AttributeError:
-                    continue
-        else:
-            # Didn't find which test from which this object came.  Hmph.
-            # It's possible that this is wrong, but it's better than nothing:
-            test_name = os.environ["PYTEST_CURRENT_TEST"].split("::")[1]
+
+        # Below is the variant where we iterate through frames.  If there's a race condition within a test itself, this will be more reliable.
+        # for frame in frames:
+        #     try:
+        #         test_name = frame.frame.f_locals['request'].module
+        #         break
+        #     except KeyError:
+        #         try:
+        #             if frame.function.startswith("test"):
+        #                 where = frame[0]
+        #                 test_name = where
+        #                 break
+        #             else:
+        #                 continue
+        #         except AttributeError:
+        #             continue
+        # else:
+        #     # Didn't find which test from which this object came.  Hmph.
+        #     # It's possible that this is wrong, but it's better than nothing:
+        #     test_name = os.environ["PYTEST_CURRENT_TEST"].split("::")[1]
+        test_name = os.environ["PYTEST_CURRENT_TEST"]
+        if test_name == 'test_ursula_and_local_keystore_signer_integration':
+            assert True
         global_mutable_where_everybody[test_name].append(self)
         self._FOR_TEST = test_name
         ########################
@@ -473,20 +486,19 @@ class Learner:
             self._learning_task.stop()
 
         if self._learning_deferred is RELAX:
-            assert False
+            assert False  # TODO: Raise instead of assert!
 
         if self._learning_deferred is not None:
             # self._learning_deferred.cancel()  # TODO: The problem here is that this might already be called.
             self._discovery_canceller(self._learning_deferred)
-
         # self.learning_deferred.cancel()  # TODO: The problem here is that there's no way to get a canceller into the LoopingCall.
 
     def handle_learning_errors(self, failure, *args, **kwargs):
         _exception = failure.value
         crash_right_now = getattr(_exception, "crash_right_now", False)
         if self._abort_on_learning_error or crash_right_now:
-            self.log.critical("Unhandled error during node learning.  Attempting graceful crash.")
             reactor.callFromThread(self._crash_gracefully, failure=failure)
+            self.log.critical("Unhandled error during node learning.  Attempting graceful crash.")
         else:
             self.log.warn(f"Unhandled error during node learning: {failure.getTraceback()}")
             if not self._learning_task.running:
@@ -495,29 +507,19 @@ class Learner:
     def _crash_gracefully(self, failure=None):
         """
         A facility for crashing more gracefully in the event that an exception
-        is unhandled in a different thread, especially inside a loop like the acumen loop, Alice's publication loop, or Bob's retrieval loop..
+        is unhandled in a different thread, especially inside a loop like the acumen loop,
+        Alice's publication loop, or Bob's retrieval loop.
         """
-
         self._crashed = failure
-
-        # TODO: Maybe patch this in tests too?
-        from tests.conftest import global_mutable_where_everybody
-        gmwe = global_mutable_where_everybody
-
         failure.raiseException()
         # TODO: We don't actually have checksum_address at this level - maybe only Characters can crash gracefully :-)  1711
         self.log.critical("{} crashed with {}".format(self.checksum_address, failure))
-
-
-        pytest.fail()
         reactor.stop()
 
     def select_teacher_nodes(self):
         nodes_we_know_about = self.known_nodes.shuffled()
-
         if not nodes_we_know_about:
             raise self.NotEnoughTeachers("Need some nodes to start learning from.")
-
         self.teacher_nodes.extend(nodes_we_know_about)
 
     def cycle_teacher_node(self):
@@ -549,6 +551,7 @@ class Learner:
             self.log.warn(
                 "Learning loop isn't started; can't learn about nodes now.  You can override this with force=True.")
         elif force:
+            # TODO: What if this has been stopped?
             self.log.info("Learning loop wasn't started; forcing start now.")
             self._learning_task.start(self._SHORT_LEARNING_DELAY, now=True)
 
@@ -608,9 +611,9 @@ class Learner:
         start = maya.now()
         starting_round = self._learning_round
 
-        if not learn_on_this_thread:
-            # Get a head start by firing the looping call now.  If it's very fast, maybe we'll have enough nodes on the first iteration.
-            self._learning_task()
+        # if not learn_on_this_thread and self._learning_task.running:
+        #     # Get a head start by firing the looping call now.  If it's very fast, maybe we'll have enough nodes on the first iteration.
+        #     self._learning_task()
 
         while True:
             rounds_undertaken = self._learning_round - starting_round
@@ -848,22 +851,19 @@ class Learner:
         #
         try:
             signature, node_payload = signature_splitter(response.content, return_remainder=True)
-        except BytestringSplittingError as e:
+        except BytestringSplittingError:
             self.log.warn("No signature prepended to Teacher {} payload: {}".format(current_teacher, response.content))
             return
 
         try:
             self.verify_from(current_teacher, node_payload, signature=signature)
-        except InvalidSignature as e:
-            self.suspicious_activities_witnessed['vladimirs'].append(
-                ('Node payload improperly signed', node_payload, signature))
-            self.log.warn(
-                f"Invalid signature ({signature}) received from teacher {current_teacher} for payload {node_payload}")
+        except Learner.InvalidSignature:  # TODO: Ensure wev've got the right InvalidSignature exception here
+            self.suspicious_activities_witnessed['vladimirs'].append(('Node payload improperly signed', node_payload, signature))
+            self.log.warn(f"Invalid signature ({signature}) received from teacher {current_teacher} for payload {node_payload}")
 
         # End edge case handling.
-        fleet_state_checksum_bytes, fleet_state_updated_bytes, node_payload = FleetSensor.snapshot_splitter(
-            node_payload,
-            return_remainder=True)
+        payload = FleetSensor.snapshot_splitter(node_payload, return_remainder=True)
+        fleet_state_checksum_bytes, fleet_state_updated_bytes, node_payload = payload
 
         current_teacher.last_seen = maya.now()
         # TODO: This is weird - let's get a stranger FleetState going.  NRN
@@ -901,30 +901,31 @@ class Learner:
                               f"Cannot establish connection to {sprout}.")
 
             # TODO: This whole section is weird; sprouts down have any of these things.
-            # except sprout.StampNotSigned:
-            #     self.log.warn(f'Verification Failed - '
-            #                   f'{sprout} stamp is unsigned.')
-            #
-            # except sprout.NotStaking:
-            #     self.log.warn(f'Verification Failed - '
-            #                   f'{sprout} has no active stakes in the current period '
-            #                   f'({self.staking_agent.get_current_period()}')
-            #
-            # except sprout.InvalidWorkerSignature:
-            #     self.log.warn(f'Verification Failed - '
-            #                   f'{sprout} has an invalid wallet signature for {sprout.decentralized_identity_evidence}')
-            #
-            # except sprout.UnbondedWorker:
-            #     self.log.warn(f'Verification Failed - '
-            #                   f'{sprout} is not bonded to a Staker.')
-            #
-            # # except sprout.Invalidsprout:
-            # #     self.log.warn(sprout.invalid_metadata_message.format(sprout))
-            #
-            # except sprout.SuspiciousActivity:
-            #     message = f"Suspicious Activity: Discovered sprout with bad signature: {sprout}." \
-            #               f"Propagated by: {current_teacher}"
-            #     self.log.warn(message)
+            except sprout.StampNotSigned:
+                self.log.warn(f'Verification Failed - '
+                              f'{sprout} stamp is unsigned.')
+
+            except sprout.NotStaking:
+                self.log.warn(f'Verification Failed - '
+                              f'{sprout} has no active stakes in the current period '
+                              f'({self.staking_agent.get_current_period()}')
+
+            except sprout.InvalidWorkerSignature:
+                self.log.warn(f'Verification Failed - '
+                              f'{sprout} has an invalid wallet signature for {sprout.decentralized_identity_evidence}')
+
+            except sprout.UnbondedWorker:
+                self.log.warn(f'Verification Failed - '
+                              f'{sprout} is not bonded to a Staker.')
+
+            # TODO: Handle invalid sprouts
+            # except sprout.Invalidsprout:
+            #     self.log.warn(sprout.invalid_metadata_message.format(sprout))
+
+            except sprout.SuspiciousActivity:
+                message = f"Suspicious Activity: Discovered sprout with bad signature: {sprout}." \
+                          f"Propagated by: {current_teacher}"
+                self.log.warn(message)
 
         # Is cycling happening in the right order?
         current_teacher.update_snapshot(checksum=checksum,

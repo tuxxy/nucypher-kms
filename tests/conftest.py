@@ -138,3 +138,37 @@ def pytest_collection_modifyitems(config, items):
     GlobalLoggerSettings.set_log_level(log_level_name)
     GlobalLoggerSettings.start_text_file_logging()
     GlobalLoggerSettings.start_json_file_logging()
+
+
+@pytest.fixture(scope='module', autouse=True)
+def check_character_state_after_test(request):
+    # TODO: Maybe patch here instead of the debug nonsense?  # TODO: Make sense of this TODO
+    yield
+    cleanup_gmwe(request)
+
+
+def cleanup_gmwe(request, fail_with_active: bool = True):
+    module_name = request.module.__name__
+    module_characters = global_mutable_where_everybody.get(module_name, [])
+
+    # Those match the module name exactly; maybe there are some that we got by frame.
+    for maybe_frame, learners in global_mutable_where_everybody.items():
+        if f"{module_name}.py" in maybe_frame:
+            module_characters.extend(learners)
+
+    faulty_characters = [char for char in module_characters if char._crashed]  # TODO: "crash" -> "fault"
+    if any(faulty_characters):
+        failure_message = ""
+        for char in faulty_characters:
+            failure_message += char._crashed.getBriefTraceback()
+        pytest.fail(f"Characters services crashed:{failure_message}")
+
+    active_characters = [char for char in module_characters if char.is_running()]
+    if any(active_characters):
+        for character in active_characters:
+            try:  # TODO: Deal with stop vs disenchant.  Currently stop is only for Ursula.
+                character.stop()
+            except AttributeError:
+                character.disenchant()
+        if fail_with_active:
+            pytest.fail(f"Characters services are actively running: {active_characters} ")

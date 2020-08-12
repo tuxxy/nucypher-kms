@@ -1384,6 +1384,7 @@ class Worker(NucypherTokenActor):
 
     class UnbondedWorker(WorkerError):
         """Raised when the Worker is not bonded to a Staker in the StakingEscrow contract."""
+        crash_right_now = True
 
     def __init__(self,
                  is_me: bool,
@@ -1434,7 +1435,7 @@ class Worker(NucypherTokenActor):
 
         timeout = timeout or self.BONDING_TIMEOUT
         poll_rate = poll_rate or self.BONDING_POLL_RATE
-        staking_agent = ContractAgency.get_agent(StakingEscrowAgent, registry=self.registry)
+        staking_agent = ContractAgency.get_agent(StakingEscrowAgent, registry=self.registry)  # TODO: use the agent on self
         client = staking_agent.blockchain.client
         start = maya.now()
 
