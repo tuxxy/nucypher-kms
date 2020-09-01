@@ -46,9 +46,12 @@ class TwoPartyElement:
     Though not performed here, this technique to solve for `x` can extend up
     to degree-five polynomials using general formulas to solve for `x`.
     """
-    def __init__(self, share: Union[CurveBN, Point], index: CurveBN):
+    def __init__(self, share: Union[CurveBN, Point], index: CurveBN,
+                 sharing_point: Point = None, indexing_point: Point = None):
         self.share = share
         self.index = index
+        self.sharing_point = sharing_point
+        self.indexing_point = indexing_point
 
     def reassemble_with(self, other: 'TwoPartyElement') -> Union[CurveBN, Point]:
         """
@@ -94,4 +97,4 @@ class TwoPartyElement:
         """
         share_value = derive_curvebn_shared_secret(priv_key, sharing_point, params)
         index_value = derive_curvebn_shared_secret(priv_key, indexing_point, params)
-        return cls(share_value, index_value)
+        return cls(share_value, index_value, sharing_point, indexing_point)

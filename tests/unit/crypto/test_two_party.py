@@ -38,6 +38,8 @@ def test_two_party_split_with_deterministic_shared_secret():
     share_point, index_point = Point.gen_rand(), Point.gen_rand()
 
     deterministic_scalar = TwoPartyElement.from_shared_secret(priv_key, share_point, index_point, default_params())
+    assert deterministic_scalar.sharing_point == share_point
+    assert deterministic_scalar.indexing_point == index_point
     non_deterministic_scalar = TwoPartyElement.split_curvebn(the_secret, deterministic_scalar.share,
                                                             deterministic_scalar.index)
     assert the_secret == non_deterministic_scalar.reassemble_with(deterministic_scalar)
