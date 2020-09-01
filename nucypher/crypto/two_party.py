@@ -1,5 +1,6 @@
 from umbral.curvebn import CurveBN
 from umbral.point import Point
+from umbral.utils import lambda_coeff
 
 from nucypher.crypto.utils import derive_curvebn_shared_secret
 
@@ -46,6 +47,15 @@ class TwoPartyScalar:
     def __init__(self, share: CurveBN, index: CurveBN):
         self.share = share
         self.index = index
+
+    def reassemble_with(self, other_scalar: 'TwoPartyScalar') -> CurveBN:
+        """
+        Re-assembles a two-party split secret given the other share and returns
+        the resulting CurveBN.
+        """
+        lambda_1 = lambda_coeff(self.index, [self.index, other_scalar.index])
+        lambda_2 = lambda_coeff(other_scalar.index, [self.index, other_scalar.index])
+        return (lambda_2 * other_scalar.share) + (lambda_1 * self.share)
 
     @classmethod
     def split_curvebn(cls, secret: CurveBN, chosen_share: CurveBN, chosen_index: CurveBN):
