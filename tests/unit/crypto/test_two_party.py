@@ -41,3 +41,26 @@ def test_two_party_split_with_deterministic_shared_secret():
     non_deterministic_scalar = TwoPartyScalar.split_curvebn(the_secret, deterministic_scalar.share,
                                                             deterministic_scalar.index)
     assert the_secret == non_deterministic_scalar.reassemble_with(deterministic_scalar)
+
+
+def test_two_party_split_computation():
+    the_secret = CurveBN.gen_rand()
+    known_share = CurveBN.gen_rand()
+    known_index = CurveBN.gen_rand()
+
+    # Split the secret
+    non_deterministic_scalar = TwoPartyScalar.split_curvebn(the_secret, known_share, known_index)
+    deterministic_scalar = TwoPartyScalar(known_share, known_index)
+
+    # Perform a two party computation of `S * r` for random `r`:
+    rand_scalar = CurveBN.gen_rand()
+    s_by_r_prime_share = non_deterministic_scalar.share * rand_scalar
+    s_by_r_prime_prime_share = deterministic_scalar.share * rand_scalar
+
+    # Re-assemble the computed value
+    non_deterministic_scalar.share = s_by_r_prime_share
+    deterministic_scalar.share = s_by_r_prime_prime_share
+    assert (the_secret * rand_scalar) == deterministic_scalar.reassemble_with(non_deterministic_scalar)
+
+    # Assembly with non-computed values doesn't compute correctly
+    assert (the_secret * rand_scalar) != deterministic_scalar.reassemble_with(TwoPartyScalar(known_share, known_index))
