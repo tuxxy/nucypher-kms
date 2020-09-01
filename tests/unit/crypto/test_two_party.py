@@ -1,6 +1,8 @@
 import pytest
 
+from umbral.config import default_params
 from umbral.curvebn import CurveBN
+from umbral.point import Point
 from nucypher.crypto.two_party import TwoPartyScalar
 
 
@@ -28,3 +30,14 @@ def test_secret_splitting_and_reassembly():
     invalid_scalar = TwoPartyScalar(CurveBN.gen_rand(), CurveBN.gen_rand())
     assert the_secret != invalid_scalar.reassemble_with(deterministic_scalar)
     assert the_secret != deterministic_scalar.reassemble_with(invalid_scalar)
+
+
+def test_two_party_split_with_deterministic_shared_secret():
+    the_secret = CurveBN.gen_rand()
+    priv_key = CurveBN.gen_rand()
+    share_point, index_point = Point.gen_rand(), Point.gen_rand()
+
+    deterministic_scalar = TwoPartyScalar.from_shared_secret(priv_key, share_point, index_point, default_params())
+    non_deterministic_scalar = TwoPartyScalar.split_curvebn(the_secret, deterministic_scalar.share,
+                                                            deterministic_scalar.index)
+    assert the_secret == non_deterministic_scalar.reassemble_with(deterministic_scalar)
