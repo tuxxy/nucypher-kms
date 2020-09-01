@@ -1,4 +1,7 @@
 from umbral.curvebn import CurveBN
+from umbral.point import Point
+
+from nucypher.crypto.utils import derive_curvebn_shared_secret
 
 
 class TwoPartyScalar:
@@ -68,3 +71,14 @@ class TwoPartyScalar:
         x_rand_index = CurveBN.gen_rand()
         z_share = secret + (r_coeff * x_rand_index)
         return cls(z_share, x_rand_index)
+
+    @classmethod
+    def from_shared_secret(cls, priv_key: CurveBN, share_point: Point, index_point: Point, params: 'UmbralParameters'):
+        """
+        Returns a deterministic TwoPartyScalar through shared secrets.
+
+        It's basically magic! ;)
+        """
+        share_value = derive_curvebn_shared_secret(priv_key, share_point, params)
+        index_value = derive_curvebn_shared_secret(priv_key, index_point, params)
+        return cls(share_value, index_value)

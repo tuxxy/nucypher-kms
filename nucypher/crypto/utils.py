@@ -18,12 +18,21 @@ along with nucypher.  If not, see <https://www.gnu.org/licenses/>.
 from coincurve import PublicKey
 from eth_keys import KeyAPI as EthKeyAPI
 from typing import Any, Union
+from umbral.curvebn import CurveBN
 from umbral.keys import UmbralPublicKey
 from umbral.point import Point
+from umbral.random_oracles import hash_to_curvebn
 from umbral.signing import Signature
 
 from nucypher.crypto.api import keccak_digest
 from nucypher.crypto.signing import SignatureStamp
+
+
+def derive_curvebn_shared_secret(priv_key: CurveBN, pub_key: CurveBN, params: 'UmbralParameters'):
+    # TODO: This whole function can be drastically improved, and perhaps placed
+    # in a better module.
+    shared_secret = priv_key * pub_key
+    return hash_to_curvebn(shared_secret, params=params, customization_string=b'TODO')
 
 
 def fingerprint_from_key(public_key: Any):
