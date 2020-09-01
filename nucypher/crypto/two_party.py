@@ -1,3 +1,5 @@
+from typing import Union
+
 from umbral.curvebn import CurveBN
 from umbral.point import Point
 from umbral.utils import lambda_coeff
@@ -5,11 +7,11 @@ from umbral.utils import lambda_coeff
 from nucypher.crypto.utils import derive_curvebn_shared_secret
 
 
-class TwoPartyScalar:
+class TwoPartyElement:
     """
-    TwoPartyScalar wraps a pyUmbral CurveBN that has been split using a modified
-    variant of two-of-two Shamir Secret Sharing to enable the deterministic
-    generation of both a share and index value for one party.
+    TwoPartyElement wraps a pyUmbral CurveBN or Point that has been split using
+    a modified variant of two-of-two Shamir Secret Sharing to enable the
+    deterministic generation of both a share and index value for one party.
 
     Uniquely, the Shamir Secret Sharing algorithm has been modified to enable
     precise selection of the value of the fragmented share and the index.
@@ -44,18 +46,18 @@ class TwoPartyScalar:
     Though not performed here, this technique to solve for `x` can extend up
     to degree-five polynomials using general formulas to solve for `x`.
     """
-    def __init__(self, share: CurveBN, index: CurveBN):
+    def __init__(self, share: Union[CurveBN, Point], index: CurveBN):
         self.share = share
         self.index = index
 
-    def reassemble_with(self, other_scalar: 'TwoPartyScalar') -> CurveBN:
+    def reassemble_with(self, other: 'TwoPartyElement') -> Union[CurveBN, Point]:
         """
         Re-assembles a two-party split secret given the other share and returns
         the resulting CurveBN.
         """
-        lambda_1 = lambda_coeff(self.index, [self.index, other_scalar.index])
-        lambda_2 = lambda_coeff(other_scalar.index, [self.index, other_scalar.index])
-        return (lambda_2 * other_scalar.share) + (lambda_1 * self.share)
+        lambda_1 = lambda_coeff(self.index, [self.index, other.index])
+        lambda_2 = lambda_coeff(other.index, [self.index, other.index])
+        return (lambda_1 * self.share) + (lambda_2 * other.share)
 
     @classmethod
     def split_curvebn(cls, secret: CurveBN, chosen_share: CurveBN, chosen_index: CurveBN):
@@ -83,12 +85,13 @@ class TwoPartyScalar:
         return cls(z_share, x_rand_index)
 
     @classmethod
-    def from_shared_secret(cls, priv_key: CurveBN, share_point: Point, index_point: Point, params: 'UmbralParameters'):
+    def from_shared_secret(cls, priv_key: CurveBN, sharing_point: Point,
+                           indexing_point: Point, params: 'UmbralParameters'):
         """
         Returns a deterministic TwoPartyScalar through shared secrets.
 
         It's basically magic! ;)
         """
-        share_value = derive_curvebn_shared_secret(priv_key, share_point, params)
-        index_value = derive_curvebn_shared_secret(priv_key, index_point, params)
+        share_value = derive_curvebn_shared_secret(priv_key, sharing_point, params)
+        index_value = derive_curvebn_shared_secret(priv_key, indexing_point, params)
         return cls(share_value, index_value)
