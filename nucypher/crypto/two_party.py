@@ -1,9 +1,9 @@
 from umbral.curvebn import CurveBN
 
 
-class TwoPartyScalar(CurveBN):
+class TwoPartyScalar:
     """
-    TwoPartyScalar is a pyUmbral CurveBN that has been split using a modified
+    TwoPartyScalar wraps a pyUmbral CurveBN that has been split using a modified
     variant of two-of-two Shamir Secret Sharing to enable the deterministic
     generation of both a share and index value for one party.
 
@@ -40,11 +40,12 @@ class TwoPartyScalar(CurveBN):
     Though not performed here, this technique to solve for `x` can extend up
     to degree-five polynomials using general formulas to solve for `x`.
     """
-    def __init__(share: CurveBN, index: CurveBN):
-        pass
+    def __init__(self, share: CurveBN, index: CurveBN):
+        self.share = share
+        self.index = index
 
     @classmethod
-    def split_curvebn(secret: CurveBN, chosen_share: CurveBN, chosen_index: CurveBN):
+    def split_curvebn(cls, secret: CurveBN, chosen_share: CurveBN, chosen_index: CurveBN):
         """
         The classmethod `split_curvebn` takes three parameters:
         `secret` - The secret to split via modified two-of-two secret sharing.
@@ -54,5 +55,16 @@ class TwoPartyScalar(CurveBN):
 
         This classmethod will return a `TwoPartyScalar` composed from the
         non-deterministic pieces of the secret sharing scheme.
+
+        TODO: Allow for the selection of `Z` in the "non-deterministic" share.
         """
-        pass
+        # Compute the coefficient for the secret sharing polynomial with the
+        # equation: R = (Z - S) / x
+        r_coeff = (chosen_share - secret) * (~chosen_index)
+
+        # Compute Z = S + R*x using the previously computed coefficient with
+        # the equation: Z = S + R*x, with a random `x`.
+        # Note that this is the non-deterministic share.
+        x_rand_index = CurveBN.gen_rand()
+        z_share = secret + (r_coeff * x_rand_index)
+        return cls(z_share, x_rand_index)
