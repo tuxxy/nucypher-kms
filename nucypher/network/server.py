@@ -477,8 +477,6 @@ def _make_rest_app(datastore: Datastore, this_node, domain: str, log: Logger) ->
         # Step 4: Public verification share is Y_i = g^{s_i}, and group public key is Y = \prod_{j=1}^n \phi_j_0.
         pass
 
-
->>>>>>> 8bfea155b (Add skeleton generate_distributed_key endpoint)
     return rest_app
 
 
