@@ -34,6 +34,7 @@ from web3.exceptions import TimeExhausted
 import nucypher
 from nucypher.crypto.api import InvalidNodeCertificate
 from nucypher.config.constants import MAX_UPLOAD_CONTENT_LENGTH
+from nucypher.crypto import dkg
 from nucypher.crypto.keypairs import HostingKeypair
 from nucypher.crypto.kits import UmbralMessageKit
 from nucypher.crypto.powers import KeyPairBasedPower, PowerUpError
