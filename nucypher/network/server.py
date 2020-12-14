@@ -35,7 +35,8 @@ from web3.exceptions import TimeExhausted
 import nucypher
 from nucypher.crypto.api import InvalidNodeCertificate
 from nucypher.config.constants import MAX_UPLOAD_CONTENT_LENGTH
-from nucypher.crypto.dkg import gen_pederson_shares, verify_pederson_share
+from nucypher.crypto.dkg import gen_index, gen_pederson_shares, verify_pederson_commitment,\
+                                verify_pederson_share
 from nucypher.crypto.keypairs import HostingKeypair
 from nucypher.crypto.kits import UmbralMessageKit
 from nucypher.crypto.powers import KeyPairBasedPower, PowerUpError
@@ -449,7 +450,7 @@ def _make_rest_app(datastore: Datastore, this_node, domain: str, log: Logger) ->
             return Response(response=content, headers=headers)
 
 
-    ### BETA ENDPOINTS
+    ### POSSESSED ENDPOINTS
     @rest_app.route('/the_unholy_ritual/', methods=['PUT'])
     def commit_to_the_unholy_one():
         payload = msgpack.unpackb(request.data)
@@ -460,7 +461,11 @@ def _make_rest_app(datastore: Datastore, this_node, domain: str, log: Logger) ->
         if ceremony_id in this_node._dkg_cache:
             return Response(status=409)
 
-        poly_comm, comm_proof, shares = gen_pederson_shares(threshold, len(participants), ceremony_id)
+        indices = [gen_index(ceremony_id, node) for node in participants]
+        poly_comm, comm_proof, shares = gen_pederson_shares(threshold,
+                                                            len(participants),
+                                                            ceremony_id,
+                                                            indices)
         this_node._dkg_cache[ceremony_id] = dict()
         # Can't use [this_node] cause it's a weakproxy and unhashable
         this_node._dkg_cache[ceremony_id]['this_node'] = (poly_comm, comm_proof, shares.pop(0))

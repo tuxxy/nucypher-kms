@@ -157,7 +157,12 @@ class Polynomial:
         return DKGShare(share, index)
 
 
-def gen_pederson_shares(t: int, n: int, ceremony_id: bytes):
+def gen_index(ceremony_id: bytes, *index_data):
+    return hash_to_curvebn(*index_data, ceremony_id,
+                           params=default_params(), hash_class=ExtendedKeccak)
+
+
+def gen_pederson_shares(t: int, n: int, ceremony_id: bytes, indices: List[CurveBN]):
     """
     Implements Round 1 of Pederson's DKG.
 
@@ -185,7 +190,7 @@ def gen_pederson_shares(t: int, n: int, ceremony_id: bytes):
                                               ceremony_id)
 
     # Finally, we generate `n` shares of the secret to distribute.
-    shares = [secret_polynomial.evaluate() for _ in range(n)]
+    shares = [secret_polynomial.evaluate(indices[i]) for i in range(n)]
     return (poly_comm, comm_proof, shares)
 
 
