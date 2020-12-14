@@ -11,13 +11,142 @@
 #
 # For a practical secure implementation, the protocol should not be re-run
 # endlessly on abort.
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
+from bytestring_splitter import VariableLengthBytestring
 from umbral.config import default_params
 from umbral.curvebn import CurveBN
 from umbral.point import Point
 from umbral.random_oracles import hash_to_curvebn, ExtendedKeccak
 from umbral.utils import lambda_coeff, poly_eval
+
+
+class SchnorrProof:
+    """
+    A zero-knowledge Schnorr Proof of Knowledge.
+    """
+    def __init__(self, sigma: CurveBN, public_comm: CurveBN):
+        self.sigma = sigma
+        self.public_comm = public_comm
+
+    @classmethod
+    def prove_knowledge(cls, secret: CurveBN, *public_data):
+        """
+        Generates a Schnorr zero-knowledge proof of the provided secret
+        with the given data.
+        """
+        g = Point.get_generator_from_curve()
+        k = CurveBN.gen_rand()
+        public_comm = hash_to_curvebn(*public_data, bytes(secret * g), bytes(k * g),
+                                      params=default_params(),
+                                      hash_class=ExtendedKeccak)
+        sigma = k + (secret * public_comm)
+        return SchnorrProof(sigma, public_comm)
+
+    def verify(self, witness: Point, *public_data):
+        """
+        Attempts to verify the Schnorr PoK.
+        """
+        g = Point.get_generator_from_curve()
+
+        k_prime = (self.sigma * g) - (self.public_comm * witness)
+        sigma_prime = hash_to_curvebn(*public_data, bytes(witness), bytes(k_prime),
+                                      params=default_params(),
+                                      hash_class=ExtendedKeccak)
+        # TODO: Exceptions
+        if not self.public_comm == sigma_prime:
+            raise Exception("Schnorr proof is invalid!")
+        return True
+
+    def to_bytes(self):
+        return bytes(self.sigma) + bytes(self.public_comm)
+
+    @classmethod
+    def from_bytes(cls, data: bytes):
+        splitter = BytestringSplitter((CurveBN, 32), (CurveBN, 32))
+        components = splitter(data)
+        return SchnorrProof(components[0], components[1])
+
+
+class DKGShare:
+    """
+    A share from a Pederson DKG ceremony.
+    """
+    def __init__(self, share: CurveBN, index: CurveBN):
+        self.share = share
+        self.index = index
+
+    @classmethod
+    def from_bytes(cls, data: bytes):
+        splitter = BytestringSplitter((CurveBN, 32), (CurveBN, 32))
+        components = splitter(data)
+        return DKGShare(components[0], components[1])
+
+    def to_bytes(self):
+        return bytes(self.share) + bytes(self.index)
+
+
+    def verify(self, poly_comm: 'Polynomial'):
+        """
+        Verifies that a share is the result of an evaluation of the provided
+        polynomial commitment.
+        """
+        g = Point.get_generator_from_curve()
+        comm_share = poly_comm.evaluate(self.index)
+        if not comm_share.share == self.share * g:
+            raise Exception("The polynomial commitment is invalid for this share.")
+        return True
+
+
+class Polynomial:
+    """
+    A simple polynomial that can be used privately or publicly as a commitment.
+    """
+    def __init__(self, coeffs: List[Union[CurveBN, Point]], secret=True):
+        self.coeffs = coeffs
+        self.secret = secret
+
+    def __len__(self):
+        return len(self.coeffs)
+
+    @classmethod
+    def gen_rand(cls, degree: int, secret=True):
+        """
+        Generates a random Polynomial of the specified degree.
+        """
+        coeffs = [CurveBN.gen_rand() for _ in range(degree)]
+        return Polynomial(coeffs, secret=secret)
+
+    @classmethod
+    def from_bytes(cls, data: bytes, secret=True):
+        coeffs_bytes = VariableLengthBytestring.dispense(data)
+        if secret:
+            coeffs = [CurveBN.from_bytes(coeff) for coeff in self.coeffs_bytes]
+        else:
+            coeffs = [Point.from_bytes(coeff) for coeff in self.coeffs_bytes]
+        return Polynomial(coeffs, secret=secret)
+
+    def to_bytes(self):
+        coeffs_bytes = [coeff.to_bytes() for coeff in self.coeffs]
+        return bytes(VariableLengthBytestring.bundle(coeffs_bytes))
+
+    def commitment(self):
+        """
+        Returns a non-secret polynomial commitment.
+        """
+        g = Point.get_generator_from_curve()
+        pub_coeffs = [a_i * g for a_i in self.coeffs]
+        return Polynomial(pub_coeffs, secret=False)
+
+    def evaluate(self, index: CurveBN = None):
+        """
+        Evaluates the polynomial with the given index. If None is provided,
+        this function will generate one at random.
+        """
+        if not index:
+            index = CurveBN.gen_rand()
+        share = poly_eval(self.coeffs, index)
+        return DKGShare(share, index)
 
 
 def gen_pederson_shares(t: int, n: int, ceremony_id: bytes) -> Tuple[Tuple[List, Tuple], List]:
@@ -36,66 +165,38 @@ def gen_pederson_shares(t: int, n: int, ceremony_id: bytes) -> Tuple[Tuple[List,
     g = Point.get_generator_from_curve() # The secp256k1 basepoint.
 
     # We begin by sampling a polynomial of degree `t`. Note that that the
-    # first term of the polynomial will be the secret, denoted as a_0.
-    coeffs = [CurveBN.gen_rand() for _ in range(t)]
+    # first term of the polynomial will be the secret. We also generate a 
+    # commitment of the polynomial by raising each coefficient by the 
+    # basepoint of the curve.
+    secret_polynomial = Polynomial.gen_rand(t)
+    poly_comm = secret_polynomial.commitment()
 
-    # Then we prove knowledge of the secret a_0 using a Schnorr proof.
-    # Schnorr proofs are of the form `k + a_0 \cdot c_i`, where `k` is a nonce
-    # generated uniformly at random, and `c_i` is the public-coin commitment.
-    k = CurveBN.gen_rand() 
-    a_0 = coeffs[0]
-    coin_items = (ceremony_id, bytes(a_0 * g), bytes(k * g))
-    public_comm = hash_to_curvebn(*coin_items, params=default_params(),
-                                  hash_class=ExtendedKeccak)
-    proof_sigma = (k + (a_0 * public_comm), public_comm)
-
-    # Next, we commit to the secret sharing polynomial by embedding the terms
-    # into the elliptic curve group.
-    share_comm = [a_i * g for a_i in coeffs]
+    # Then we prove knowledge of the secret using a Schnorr proof to prevent
+    # rogue-key attacks.
+    comm_proof = SchnorrProof.prove_knowledge(secret_polynomial.coeffs[0],
+                                              ceremony_id)
 
     # Finally, we generate `n` shares of the secret to distribute.
-    shares = list()
-    for _ in range(n):
-        idx = CurveBN.gen_rand()
-        shares.append((poly_eval(coeffs, idx), idx))
-    return ((share_comm, proof_sigma), shares)
+    shares = [secret_polynomial.evaluate() for _ in range(n)]
+    return (poly_comm, comm_proof, shares)
 
 
-def verify_pederson_commitment(comm: Tuple[List, Tuple], ceremony_id: bytes):
+def verify_pederson_commitment(poly_comm: 'Polynomial',
+                               comm_proof: 'SchnorrProof',
+                               ceremony_id: bytes):
     """
     Implements the verification step in Round 1 of Pederson's DKG protocol.
 
     This simply verifies the zero knowlege proof of the secret term using a
     Schnorr sigma protocol.
     """
-    g = Point.get_generator_from_curve() # The secp256k1 basepoint.
-    share_comm, proof_sigma = comm
+    return comm_proof.verify(poly_comm.coeffs[0], ceremony_id)
 
-    # Compute the public coin and compare it to the proof
-    coin_items = (ceremony_id, bytes(share_comm[0]),
-                  bytes((proof_sigma[0] * g) - (proof_sigma[1] * share_comm[0])))
-    sigma_prime = hash_to_curvebn(*coin_items, params=default_params(),
-                                  hash_class=ExtendedKeccak)
-    
-    # TODO: Implement errors
-    if not proof_sigma[1] == sigma_prime:
-        raise Exception("Proof is invalid - aborting.")
-    return True
-
-
-def verify_pederson_share(share: Tuple[CurveBN, CurveBN], comm: Tuple[List, Tuple]):
+def verify_pederson_share(share: 'DKGShare', poly_comm: 'Polynomial'):
     """
     Implements the verification step in Round 2 of Pederson's DKG protocol.
 
     This simply checks that the received share matches the product output from
     the polynomial commitment.
     """
-    g = Point.get_generator_from_curve() # The secp256k1 basepoint.
-
-    # Evaluate the polynomial commitment with the index of the received share.
-    share_prime = poly_eval(comm[0], share[1])
-
-    # TODO: Implement errors
-    if not share[0] * g == share_prime:
-        raise Exception("Commitment is invalid - aborting.")
-    return True
+    return share.verify(poly_comm)
