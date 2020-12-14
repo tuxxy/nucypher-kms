@@ -275,6 +275,24 @@ class SignedTreasureMap(TreasureMap):
         return self._blockchain_signature + super().__bytes__()
 
 
+class UnholyRitual:
+    """
+    biberent de limine
+    nos manducare ab claves
+    ave, ave Pederson!
+    ave Ursula!
+
+    An unnamed unholy ritual for Alice, Bob, and Ursula to partake in.
+    """
+    def __init__(self,
+                 ceremony_id: bytes,
+                 threshold: int,
+                 participants: dict):
+        self.ceremony_id = ceremony_id
+        self.threshold = threshold
+        self.participants = participants
+
+
 class PolicyCredential:
     """
     A portable structure that contains information necessary for Alice or Bob
