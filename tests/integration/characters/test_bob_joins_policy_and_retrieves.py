@@ -260,3 +260,7 @@ def test_bob_retrieves_too_late(federated_bob, federated_ursulas,
     # Check that Bob can't get the treasure map after the policy is expired
     with pytest.raises(TreasureMap.NowhereToBeFound):
         federated_bob.get_treasure_map(alice_verifying_key, label=enacted_federated_policy.label)
+
+
+def test_ursula_is_possessed(federated_ursulas, federated_alice):
+    federated_alice.perform_the_unholy_ritual(3, list(federated_ursulas)[:5], b'oh no')

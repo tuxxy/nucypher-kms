@@ -20,6 +20,7 @@ from collections import OrderedDict
 from typing import Optional, Tuple
 
 import maya
+import msgpack
 from cryptography.hazmat.backends.openssl import backend
 from cryptography.hazmat.primitives import hashes
 from eth_utils import to_canonical_address, to_checksum_address
@@ -36,6 +37,7 @@ from nucypher.blockchain.eth.constants import ETH_ADDRESS_BYTE_LENGTH, ETH_HASH_
 from nucypher.characters.lawful import Bob, Character
 from nucypher.crypto.api import encrypt_and_sign, keccak_digest, verify_eip_191
 from nucypher.crypto.constants import HRAC_LENGTH
+from nucypher.crypto.dkg import verify_pederson_commitment
 from nucypher.crypto.kits import UmbralMessageKit
 from nucypher.crypto.signing import InvalidSignature, Signature, signature_splitter
 from nucypher.crypto.splitters import capsule_splitter, cfrag_splitter, key_splitter
@@ -300,22 +302,24 @@ class UnholyRitual:
         verify_pederson_commitment(poly_comm, comm_proof, self.ceremony_id)
         self.commitments[node] = (poly_comm, comm_proof)
 
-    def to_json(self):
+    def to_msgpack(self, as_transcript=False):
         """
         A most unholy format.
         """
-        # Verify that all the participants have committed.
-        # TODO: Exceptions
-        for node in self.node_participants:
-            if node not in self.commitments:
-                raise Exception("The UnholyRitual hasn't been completed yet!")
-
         data_dict = {
             'ceremony_id': self.ceremony_id,
             'threshold': self.threshold,
-            'participants': self.node_participants
         }
-        return data_dict.to_json()
+        data_dict['participants'] = [bytes(node) for node in self.node_participants]
+
+        # Verify that all the participants have committed.
+        if as_transcript:
+            for node in self.node_participants:
+                if node not in self.commitments:
+                    raise Exception("The UnholyRitual hasn't been completed yet!")
+                else:
+                    data_dict[bytes(node)] = self.commitments[node].to_bytes()
+        return msgpack.packb(data_dict)
 
 class PolicyCredential:
     """

@@ -41,6 +41,20 @@ class CryptoKit:
         return cls.split_bytes(some_bytes)
 
 
+class BlackSacrament(CryptoKit):
+    """
+    An unholy ritual is being performed; the black sacrament must be fulfilled!
+    """
+    def __init__(self,
+                 pederson_commitment: 'Polynomial',
+                 commitment_proof: 'SchnorrProof',
+                 signature=NOT_SIGNED,
+                 share: 'DKGShare' = None):
+        self.pederson_commitment = pederson_commitment
+        self.commitment_proof = commitment_proof
+        self.signature = signature,
+        self.share = share
+
 class MessageKit(CryptoKit):
     """
     All the components needed to transmit and verify an encrypted message.

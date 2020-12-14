@@ -16,6 +16,7 @@ along with nucypher.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import binascii
+import msgpack
 import os
 import uuid
 import weakref
@@ -34,7 +35,7 @@ from web3.exceptions import TimeExhausted
 import nucypher
 from nucypher.crypto.api import InvalidNodeCertificate
 from nucypher.config.constants import MAX_UPLOAD_CONTENT_LENGTH
-from nucypher.crypto import dkg
+from nucypher.crypto.dkg import gen_pederson_shares, verify_pederson_share
 from nucypher.crypto.keypairs import HostingKeypair
 from nucypher.crypto.kits import UmbralMessageKit
 from nucypher.crypto.powers import KeyPairBasedPower, PowerUpError
@@ -449,34 +450,23 @@ def _make_rest_app(datastore: Datastore, this_node, domain: str, log: Logger) ->
 
 
     ### BETA ENDPOINTS
-    @rest_app.route('/dkg/', methods=['PUT'])
-    def generate_distributed_key():
-        # Implements Pederson's DKG with a modification to require each
-        # party prove knowledge of their secret.
-        # See: https://eprint.iacr.org/2020/852.pdf
+    @rest_app.route('/the_unholy_ritual/', methods=['PUT'])
+    def commit_to_the_unholy_one():
+        payload = msgpack.unpackb(request.data)
+        threshold = payload['threshold']
+        ceremony_id = payload['ceremony_id']
+        participants = payload['participants']
 
-        ### ROUND 1
-        ### FIGHT!
-        # Step 1: Sample t values to define a t-1 degree polynomial as f_i(x) = \sum_{j=0}^{t-1} a_{i,j} x^j
+        if ceremony_id in this_node._dkg_cache:
+            return Response(status=409)
 
-        # Step 2: Compute a ZKP to the corresponding secret a_0 as \sigma_i
-
-        # Step 3: Compute a public commitment of the coefficients as C_i = < g^{a_0}, ..., g^{a_(t-1)^(t-1)} >
-
-        # Step 4: Broadcast (C_i, \sigma_i) to all participants
-
-        # Step 5: Upon receiving (C_i, \sigma_i), verify the ZKP. If fail, abort protocol.
-
-        ### ROUND 2
-        ### FIGHT!
-        # Step 1: Securely send a share fragment to (l, f_i(l)) to each participant, keeping a share for yourself.
-        
-        # Step 2: Upon receving a share fragment, verify it as g^f_i(l) ?= \prod_{k=0}^{t-i} \phi_{lk}^{i^k}. If fail, abort protocol.
-
-        # Step 3: Calculate the full share as s_i = \sum_{i=1}^n f_l(i)
-
-        # Step 4: Public verification share is Y_i = g^{s_i}, and group public key is Y = \prod_{j=1}^n \phi_j_0.
-        pass
+        poly_comm, comm_proof, shares = gen_pederson_shares(threshold, len(participants), ceremony_id)
+        this_node._dkg_cache[ceremony_id] = dict()
+        # Can't use [this_node] cause it's a weakproxy and unhashable
+        this_node._dkg_cache[ceremony_id]['this_node'] = (poly_comm, comm_proof, shares.pop(0))
+        this_node._dkg_cache[ceremony_id]['shares'] = shares[1:]
+        return msgpack.packb({'polynomial_commitment': poly_comm.to_bytes(),
+                              'commitment_proof': comm_proof.to_bytes()})
 
     return rest_app
 

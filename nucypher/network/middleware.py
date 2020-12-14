@@ -287,3 +287,9 @@ class RestMiddleware:
                                        params=params)
 
         return response
+
+    def commit_to_the_unholy_one(self, node, unholy_ritual, as_transcript=False):
+        response = self.client.put(node_or_sprout=node,
+                                   path="the_unholy_ritual/",
+                                   data=unholy_ritual.to_msgpack(as_transcript=as_transcript))
+        return response

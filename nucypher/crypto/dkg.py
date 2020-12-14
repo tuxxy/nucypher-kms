@@ -107,7 +107,7 @@ class Polynomial:
     """
     A simple polynomial that can be used privately or publicly as a commitment.
     """
-    def __init__(self, coeffs: List[Union[CurveBN, Point]], secret=True):
+    def __init__(self, coeffs: List[Union[CurveBN, Point]], secret=False):
         self.coeffs = coeffs
         self.secret = secret
 
@@ -126,7 +126,7 @@ class Polynomial:
         return Polynomial(coeffs, secret=secret)
 
     @classmethod
-    def from_bytes(cls, data: bytes, secret=True):
+    def from_bytes(cls, data: bytes, secret=False):
         coeffs_bytes = VariableLengthBytestring.dispense(data)
         if secret:
             coeffs = [CurveBN.from_bytes(coeff) for coeff in coeffs_bytes]

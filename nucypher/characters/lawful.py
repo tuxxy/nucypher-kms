@@ -383,6 +383,28 @@ class Alice(Character, BlockchainPolicyAuthor):
         )]
         return cleartexts
 
+    def perform_the_unholy_ritual(self,
+                                  threshold: int,
+                                  participants,
+                                  ceremony_id: bytes):
+        """
+        https://www.youtube.com/watch?v=ypOIlPXQIxQ
+        """
+        import msgpack
+        from nucypher.policy.collections import UnholyRitual
+        from nucypher.crypto.dkg import Polynomial, SchnorrProof
+
+        black_sacrament = UnholyRitual(ceremony_id, threshold, participants)
+        for node in participants:
+            response = self.network_middleware.commit_to_the_unholy_one(node, black_sacrament)
+            sacrifice = msgpack.unpackb(response.data)
+            poly_comm = Polynomial.from_bytes(sacrifice['polynomial_commitment'])
+            comm_proof = SchnorrProof.from_bytes(sacrifice['commitment_proof'])
+            black_sacrament.add_commitment(node, poly_comm, comm_proof)
+
+        # THE SACRIFICES HAVE BEEN OFFERED, THE SACRAMENT MUST BE CONSUMED!
+
+
     def make_web_controller(drone_alice, crash_on_error: bool = False):
         app_name = bytes(drone_alice.stamp).hex()[:6]
         controller = WebController(app_name=app_name,
