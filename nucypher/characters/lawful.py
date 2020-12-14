@@ -1059,6 +1059,9 @@ class Ursula(Teacher, Character, Worker):
             self._prune_datastore = prune_datastore
             self._datastore_pruning_task = LoopingCall(f=self.__prune_datastore)
 
+            # Pederson DKG testing
+            self._dkg_cache = dict()
+
         #
         # Ursula the Decentralized Worker (Self)
         #

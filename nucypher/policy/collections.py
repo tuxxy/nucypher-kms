@@ -287,11 +287,35 @@ class UnholyRitual:
     def __init__(self,
                  ceremony_id: bytes,
                  threshold: int,
-                 participants: dict):
+                 node_participants: list):
         self.ceremony_id = ceremony_id
         self.threshold = threshold
-        self.participants = participants
+        self.node_participants = node_participants
+        self.commitments = dict()
 
+    def add_commitment(self, node, poly_comm: 'Polynomial', comm_proof: 'SchnorrProof'):
+        """
+        A sacrifice is made! Commit thyself unto the unholy one.
+        """
+        verify_pederson_commitment(poly_comm, comm_proof, self.ceremony_id)
+        self.commitments[node] = (poly_comm, comm_proof)
+
+    def to_json(self):
+        """
+        A most unholy format.
+        """
+        # Verify that all the participants have committed.
+        # TODO: Exceptions
+        for node in self.node_participants:
+            if node not in self.commitments:
+                raise Exception("The UnholyRitual hasn't been completed yet!")
+
+        data_dict = {
+            'ceremony_id': self.ceremony_id,
+            'threshold': self.threshold,
+            'participants': self.node_participants
+        }
+        return data_dict.to_json()
 
 class PolicyCredential:
     """

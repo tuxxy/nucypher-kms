@@ -157,7 +157,7 @@ class Polynomial:
         return DKGShare(share, index)
 
 
-def gen_pederson_shares(t: int, n: int, ceremony_id: bytes) -> Tuple[Tuple[List, Tuple], List]:
+def gen_pederson_shares(t: int, n: int, ceremony_id: bytes):
     """
     Implements Round 1 of Pederson's DKG.
 
