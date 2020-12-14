@@ -13,7 +13,7 @@
 # endlessly on abort.
 from typing import List, Tuple, Union
 
-from bytestring_splitter import VariableLengthBytestring
+from bytestring_splitter import BytestringSplitter, VariableLengthBytestring
 from umbral.config import default_params
 from umbral.curvebn import CurveBN
 from umbral.point import Point
@@ -28,6 +28,9 @@ class SchnorrProof:
     def __init__(self, sigma: CurveBN, public_comm: CurveBN):
         self.sigma = sigma
         self.public_comm = public_comm
+
+    def __eq__(self, other):
+        return self.sigma == other.sigma and self.public_comm == other.public_comm
 
     @classmethod
     def prove_knowledge(cls, secret: CurveBN, *public_data):
@@ -59,7 +62,7 @@ class SchnorrProof:
         return True
 
     def to_bytes(self):
-        return bytes(self.sigma) + bytes(self.public_comm)
+        return self.sigma.to_bytes() + self.public_comm.to_bytes()
 
     @classmethod
     def from_bytes(cls, data: bytes):
@@ -76,6 +79,9 @@ class DKGShare:
         self.share = share
         self.index = index
 
+    def __eq__(self, other):
+        return self.share == other.share and self.index == other.index
+
     @classmethod
     def from_bytes(cls, data: bytes):
         splitter = BytestringSplitter((CurveBN, 32), (CurveBN, 32))
@@ -83,8 +89,7 @@ class DKGShare:
         return DKGShare(components[0], components[1])
 
     def to_bytes(self):
-        return bytes(self.share) + bytes(self.index)
-
+        return self.share.to_bytes() + self.index.to_bytes()
 
     def verify(self, poly_comm: 'Polynomial'):
         """
@@ -109,6 +114,9 @@ class Polynomial:
     def __len__(self):
         return len(self.coeffs)
 
+    def __eq__(self, other):
+        return self.coeffs == other.coeffs
+
     @classmethod
     def gen_rand(cls, degree: int, secret=True):
         """
@@ -121,9 +129,9 @@ class Polynomial:
     def from_bytes(cls, data: bytes, secret=True):
         coeffs_bytes = VariableLengthBytestring.dispense(data)
         if secret:
-            coeffs = [CurveBN.from_bytes(coeff) for coeff in self.coeffs_bytes]
+            coeffs = [CurveBN.from_bytes(coeff) for coeff in coeffs_bytes]
         else:
-            coeffs = [Point.from_bytes(coeff) for coeff in self.coeffs_bytes]
+            coeffs = [Point.from_bytes(coeff) for coeff in coeffs_bytes]
         return Polynomial(coeffs, secret=secret)
 
     def to_bytes(self):

@@ -24,3 +24,19 @@ def test_pederson_dkg():
     _, _, bad_shares = gen_pederson_shares(3, 5, b'wrong ceremony')
     with pytest.raises(Exception):
         assert not verify_pederson_share(bad_shares[0], poly_comm)
+
+def test_dkg_types_serialization():
+    poly_comm, comm_proof, shares = gen_pederson_shares(3, 5, b'test ceremony id')
+
+    # Polynomial serialization
+    poly_bytes = poly_comm.to_bytes()
+    assert Polynomial.from_bytes(poly_bytes, secret=False) == poly_comm
+
+    # Schnorr proof serialization
+    schnorr_bytes = comm_proof.to_bytes()
+    assert SchnorrProof.from_bytes(schnorr_bytes) == comm_proof
+
+    # DKGShare serialization
+    for share in shares:
+        share_bytes = share.to_bytes()
+        assert DKGShare.from_bytes(share_bytes) == share
